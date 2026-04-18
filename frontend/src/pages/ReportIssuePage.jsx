@@ -1,8 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import PublicNav from '../components/layout/PublicNav';
-import { issuesAPI, aiAPI } from '../services/api';
+import { issuesAPI, aiAPI, analyticsAPI } from '../services/api';
 
 const CATEGORIES = [
   { id: 'roads', label: 'Roads', icon: '🛣️' },
@@ -11,11 +11,13 @@ const CATEGORIES = [
   { id: 'parks', label: 'Parks', icon: '🌳' },
   { id: 'water', label: 'Water', icon: '💧' },
   { id: 'traffic', label: 'Traffic', icon: '🚦' },
+  { id: 'infrastructure', label: 'Infrastructure', icon: '🏗️' },
+  { id: 'public_safety', label: 'Safety', icon: '🛡️' },
 ];
 
 export default function ReportIssuePage() {
   const navigate = useNavigate();
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, formState: { errors } } = useForm();
   const descValue = watch('description', '');
 
   const [images, setImages] = useState([]);
@@ -27,9 +29,18 @@ export default function ReportIssuePage() {
   const [submitted, setSubmitted] = useState(null);
   const [isUrgent, setIsUrgent] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [sidebarStats, setSidebarStats] = useState(null);
   const fileInputRef = useRef();
+  const classifyTimer = useRef();
 
-  // Auto-classify when description changes
+  // Load real stats for sidebar
+  useEffect(() => {
+    analyticsAPI.getSummary()
+      .then(({ data }) => setSidebarStats(data.data?.overview))
+      .catch(() => {}); // silent — sidebar stats are optional
+  }, []);
+
+  // Debounced AI classify
   const classifyText = useCallback(async (text) => {
     if (text.length < 15) { setAiPreview(null); return; }
     setAiLoading(true);
@@ -43,19 +54,17 @@ export default function ReportIssuePage() {
     finally { setAiLoading(false); }
   }, [selectedCategory]);
 
-  // Debounce classify
-  const descRef = useRef();
   const handleDescChange = (e) => {
-    clearTimeout(descRef.current);
-    descRef.current = setTimeout(() => classifyText(e.target.value), 800);
+    clearTimeout(classifyTimer.current);
+    classifyTimer.current = setTimeout(() => classifyText(e.target.value), 800);
   };
 
   const handleFiles = (files) => {
     const valid = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 5);
-    setImages((prev) => [...prev, ...valid].slice(0, 5));
-    valid.forEach((file) => {
+    setImages(prev => [...prev, ...valid].slice(0, 5));
+    valid.forEach(file => {
       const reader = new FileReader();
-      reader.onload = (e) => setImagePreviews((prev) => [...prev, e.target.result].slice(0, 5));
+      reader.onload = e => setImagePreviews(prev => [...prev, e.target.result].slice(0, 5));
       reader.readAsDataURL(file);
     });
   };
@@ -67,8 +76,8 @@ export default function ReportIssuePage() {
   };
 
   const removeImage = (idx) => {
-    setImages((prev) => prev.filter((_, i) => i !== idx));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+    setImages(prev => prev.filter((_, i) => i !== idx));
+    setImagePreviews(prev => prev.filter((_, i) => i !== idx));
   };
 
   const onSubmit = async (formData) => {
@@ -79,24 +88,18 @@ export default function ReportIssuePage() {
       fd.append('description', formData.description);
       fd.append('category', selectedCategory || aiPreview?.category || 'other');
       fd.append('isUrgent', isUrgent);
-      fd.append('location', JSON.stringify({
-        address: formData.location || '',
-        lat: 22.7196,
-        lng: 75.8577,
-        district: 'Central District',
-      }));
-      images.forEach((img) => fd.append('images', img));
-
+      fd.append('location', JSON.stringify({ address: formData.location || '', district: '' }));
+      images.forEach(img => fd.append('images', img));
       const { data } = await issuesAPI.report(fd);
       setSubmitted(data.issue);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to submit. Please try again.');
+      alert(err.response?.data?.message || 'Submission failed. Make sure the backend is running.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Success screen
+  // ── Success screen ─────────────────────────────────────
   if (submitted) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -108,9 +111,10 @@ export default function ReportIssuePage() {
             </svg>
           </div>
           <h2 className="font-display text-3xl font-bold text-slate-900 mb-3">Report Submitted!</h2>
-          <p className="text-slate-500 mb-2">Your complaint has been received and classified by our AI system.</p>
+          <p className="text-slate-500 mb-6">Your complaint has been received and classified by our AI system.</p>
+
           <div className="bg-brand-50 border border-brand-200 rounded-2xl p-5 my-6 text-left">
-            <p className="text-xs text-brand-600 font-bold uppercase tracking-wider mb-3">Ticket Details</p>
+            <p className="text-xs text-brand-600 font-bold uppercase tracking-wider mb-3">Your Ticket</p>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">Ticket ID</span>
@@ -118,7 +122,7 @@ export default function ReportIssuePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Category</span>
-                <span className="font-semibold capitalize text-slate-800">{submitted.category}</span>
+                <span className="font-semibold capitalize text-slate-800">{submitted.category?.replace('_',' ')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Priority</span>
@@ -129,16 +133,20 @@ export default function ReportIssuePage() {
                 }`}>{submitted.priority}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Department</span>
+                <span className="text-slate-500">Routed To</span>
                 <span className="font-semibold text-slate-800">{submitted.department}</span>
               </div>
             </div>
           </div>
+
           <div className="flex gap-3 justify-center">
             <button onClick={() => navigate(`/track?id=${submitted.ticketId}`)} className="btn-primary">
               Track Status
             </button>
-            <button onClick={() => { setSubmitted(null); setImages([]); setImagePreviews([]); setAiPreview(null); }} className="btn-secondary">
+            <button
+              onClick={() => { setSubmitted(null); setImages([]); setImagePreviews([]); setAiPreview(null); setSelectedCategory(''); }}
+              className="btn-secondary"
+            >
               Report Another
             </button>
           </div>
@@ -147,39 +155,41 @@ export default function ReportIssuePage() {
     );
   }
 
+  // ── Main form ─────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50">
       <PublicNav />
 
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
           {/* Main form */}
           <div className="lg:col-span-2">
             <div className="card p-8 animate-slide-up">
               <p className="section-tag mb-2">Issue Reporting</p>
               <h1 className="font-display text-3xl font-bold text-slate-900 mb-2">Report New Issue</h1>
               <p className="text-slate-500 mb-8">
-                Provide details about the urban concern. Our AI will curate and route your report to the correct department.
+                Describe the urban issue. Our AI will classify it and route it to the correct department automatically.
               </p>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                {/* Category selector */}
+
+                {/* Category */}
                 <div>
-                  <label className="label">Category</label>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  <label className="label">Category <span className="text-slate-400 normal-case font-normal">(optional — AI will detect)</span></label>
+                  <div className="grid grid-cols-4 gap-2">
                     {CATEGORIES.map(({ id, label, icon }) => (
                       <button
                         key={id}
                         type="button"
-                        onClick={() => setSelectedCategory(id)}
-                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                        onClick={() => setSelectedCategory(id === selectedCategory ? '' : id)}
+                        className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-xs font-medium transition-all ${
                           selectedCategory === id
                             ? 'border-brand-500 bg-brand-50 text-brand-700'
                             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                         }`}
                       >
-                        <span>{icon}</span>
-                        <span>{label}</span>
+                        <span>{icon}</span><span>{label}</span>
                       </button>
                     ))}
                   </div>
@@ -187,33 +197,32 @@ export default function ReportIssuePage() {
 
                 {/* Description */}
                 <div>
-                  <label className="label">Detailed Description</label>
+                  <label className="label">Detailed Description *</label>
                   <div className="relative">
                     <textarea
-                      {...register('description', { required: 'Description is required', minLength: { value: 15, message: 'Be more descriptive (min 15 chars)' } })}
+                      {...register('description', {
+                        required: 'Description is required',
+                        minLength: { value: 15, message: 'Please describe in more detail (min 15 chars)' }
+                      })}
                       onChange={handleDescChange}
                       rows={5}
-                      placeholder="What did you observe? (e.g., Damaged pavement on 5th Ave causing accidents...)"
+                      placeholder="Describe what you observed — location, severity, how long it's been there..."
                       className="input-field resize-none pr-12"
                     />
-                    {/* Mic button */}
                     <button
                       type="button"
-                      className="absolute bottom-3 right-3 w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center hover:bg-brand-700 transition-colors"
                       title="Voice input (coming soon)"
+                      className="absolute bottom-3 right-3 w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center hover:bg-brand-700 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" strokeWidth="2"/>
                         <path d="M19 10v2a7 7 0 0 1-14 0v-2" strokeWidth="2" strokeLinecap="round"/>
                         <line x1="12" y1="19" x2="12" y2="23" strokeWidth="2" strokeLinecap="round"/>
-                        <line x1="8" y1="23" x2="16" y2="23" strokeWidth="2" strokeLinecap="round"/>
                       </svg>
                     </button>
                   </div>
-                  {errors.description && (
-                    <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>
-                  )}
-                  <p className="text-xs text-slate-400 mt-1 text-right">{descValue?.length || 0} chars</p>
+                  {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
+                  <p className="text-xs text-slate-400 mt-1 text-right">{descValue?.length || 0} characters</p>
                 </div>
 
                 {/* Location */}
@@ -221,16 +230,16 @@ export default function ReportIssuePage() {
                   <label className="label">Location / Address</label>
                   <input
                     {...register('location')}
-                    placeholder="e.g., 5th Ave & Main St, Downtown District"
+                    placeholder="Street address, landmark, or area description"
                     className="input-field"
                   />
                 </div>
 
                 {/* Image upload */}
                 <div>
-                  <label className="label">Visual Evidence</label>
+                  <label className="label">Visual Evidence <span className="text-slate-400 normal-case font-normal">(optional, max 5 images)</span></label>
                   <div
-                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
@@ -246,17 +255,10 @@ export default function ReportIssuePage() {
                       </svg>
                     </div>
                     <p className="text-sm font-semibold text-slate-700 mb-1">Drag and drop images here</p>
-                    <p className="text-xs text-slate-400">or click to browse local files (Max 10MB each, up to 5)</p>
+                    <p className="text-xs text-slate-400">or click to browse (max 10MB each)</p>
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handleFiles(e.target.files)}
-                  />
-                  {/* Preview grid */}
+                  <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
+
                   {imagePreviews.length > 0 && (
                     <div className="flex gap-2 mt-3 flex-wrap">
                       {imagePreviews.map((src, i) => (
@@ -265,7 +267,7 @@ export default function ReportIssuePage() {
                           <button
                             type="button"
                             onClick={() => removeImage(i)}
-                            className="absolute top-1 right-1 w-5 h-5 bg-slate-900/70 text-white rounded-full flex items-center justify-center text-xs"
+                            className="absolute top-1 right-1 w-5 h-5 bg-slate-900/70 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-500"
                           >×</button>
                         </div>
                       ))}
@@ -273,31 +275,27 @@ export default function ReportIssuePage() {
                   )}
                 </div>
 
-                {/* AI Preview */}
+                {/* AI Preview — only shows when description typed */}
                 {(aiPreview || aiLoading) && (
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
                     <p className="section-tag mb-3 flex items-center gap-2">
                       <span className="w-4 h-4 bg-brand-600 rounded-full flex items-center justify-center">
-                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="3"/>
-                        </svg>
+                        <span className="text-white text-[8px]">AI</span>
                       </span>
                       AI Preview Analysis
                     </p>
                     {aiLoading ? (
                       <div className="flex items-center gap-2 text-sm text-slate-500">
                         <div className="w-4 h-4 border-2 border-brand-300 border-t-brand-600 rounded-full animate-spin" />
-                        Analyzing…
+                        Classifying your report…
                       </div>
                     ) : (
                       <div className="grid grid-cols-3 gap-3">
                         <div className="bg-white rounded-xl p-3 border border-slate-100">
                           <p className="label text-[10px] mb-1">Category</p>
                           <div className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 bg-brand-500 rounded-full"></span>
-                            <span className="text-sm font-semibold capitalize text-slate-800">
-                              {aiPreview?.category?.replace('_', ' ') || '—'}
-                            </span>
+                            <span className="w-2 h-2 bg-brand-500 rounded-full" />
+                            <span className="text-sm font-semibold capitalize text-slate-800">{aiPreview?.category?.replace(/_/g,' ') || '—'}</span>
                           </div>
                         </div>
                         <div className="bg-white rounded-xl p-3 border border-slate-100">
@@ -310,17 +308,15 @@ export default function ReportIssuePage() {
                           }`}>{aiPreview?.priority || '—'}</span>
                         </div>
                         <div className="bg-white rounded-xl p-3 border border-slate-100">
-                          <p className="label text-[10px] mb-1">Assigned</p>
-                          <span className="text-sm font-semibold text-slate-800">
-                            {aiPreview?.department || 'Public Works'}
-                          </span>
+                          <p className="label text-[10px] mb-1">Routes To</p>
+                          <span className="text-sm font-semibold text-slate-800">{aiPreview?.department || '—'}</span>
                         </div>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Mark as Urgent */}
+                {/* Mark urgent */}
                 <div
                   className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${
                     isUrgent ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-slate-50'
@@ -328,7 +324,7 @@ export default function ReportIssuePage() {
                   onClick={() => setIsUrgent(!isUrgent)}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-red-500">ℹ️</span>
+                    <span>⚠️</span>
                     <span className="text-sm font-semibold text-slate-700">Mark as Urgent</span>
                   </div>
                   <div className={`w-10 h-5 rounded-full transition-all relative ${isUrgent ? 'bg-red-500' : 'bg-slate-300'}`}>
@@ -339,72 +335,79 @@ export default function ReportIssuePage() {
                 {/* Submit */}
                 <button type="submit" disabled={submitting} className="btn-primary w-full py-4 text-base">
                   {submitting ? (
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 justify-center">
                       <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                      Submitting Report…
+                      Submitting…
                     </span>
                   ) : 'Submit Report'}
                 </button>
 
                 <p className="text-xs text-center text-slate-400 leading-relaxed">
-                  By submitting, you agree to our Terms of Service and Privacy Policy. Data will be processed by CityPulse AI for urban maintenance prioritization.
+                  By submitting, you agree to our Terms of Service and Privacy Policy.
                 </p>
               </form>
             </div>
           </div>
 
-          {/* Sidebar stats */}
+          {/* Sidebar — only real data, no fake numbers */}
           <div className="space-y-4">
-            {/* Active tickets */}
-            <div className="card p-5">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Tickets</p>
-                <svg className="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div className="flex items-end gap-2">
-                <span className="font-display text-4xl font-bold text-slate-900">1,284</span>
-                <span className="text-green-500 text-sm font-bold mb-1">+12%</span>
-              </div>
-              <div className="mt-2 h-1.5 bg-brand-600 rounded-full w-3/4" />
-              <p className="text-xs text-slate-400 mt-2">70% of issues resolved this week</p>
-            </div>
 
-            {/* Neighborhood stats */}
-            <div className="card p-5 space-y-4">
-              <div>
-                <p className="label">Neighborhood Status</p>
-                <div className="flex items-end gap-2">
-                  <span className="font-display text-xl font-bold text-slate-900">Active</span>
-                  <span className="text-xs text-slate-400 mb-0.5">3 reports nearby</span>
+            {/* Live stats from API */}
+            {sidebarStats ? (
+              <div className="card p-5">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Live Platform Stats</p>
+                <div className="space-y-4">
+                  <div>
+                    <p className="label text-[10px]">Total Complaints</p>
+                    <p className="font-display text-3xl font-bold text-slate-900">{sidebarStats.totalIssues.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="label text-[10px]">Active Issues</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-display text-2xl font-bold text-slate-900">{sidebarStats.activeIssues}</p>
+                      {sidebarStats.activeIssues > 0 && <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="label text-[10px]">Resolution Rate</p>
+                    <p className="font-display text-2xl font-bold text-green-600">{sidebarStats.resolutionRate}%</p>
+                  </div>
                 </div>
               </div>
-              <div>
-                <p className="label">Response Time</p>
-                <div className="flex items-center gap-2">
-                  <span className="font-display text-xl font-bold text-slate-900">2.4h</span>
-                  <span className="text-orange-500">⚡</span>
-                  <span className="text-xs text-slate-400">Avg. resolution</span>
+            ) : (
+              // No fake numbers — just show a helpful tip
+              <div className="card p-5 bg-brand-50 border-brand-100">
+                <p className="text-xs font-bold text-brand-600 uppercase tracking-wider mb-2">How It Works</p>
+                <div className="space-y-2 text-xs text-brand-700">
+                  <p>1️⃣ Describe the issue</p>
+                  <p>2️⃣ AI classifies & prioritizes</p>
+                  <p>3️⃣ Routed to the right department</p>
+                  <p>4️⃣ Track progress with your ticket ID</p>
                 </div>
               </div>
-              <div>
-                <p className="label">District AI Score</p>
-                <div className="flex items-center gap-2">
-                  <span className="font-display text-xl font-bold text-slate-900">88</span>
-                  <span className="text-brand-500 text-sm">✨</span>
-                  <span className="text-xs text-slate-400">Health index</span>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Track existing */}
             <div className="card p-5 bg-brand-600 text-white">
-              <p className="font-semibold mb-2">Already reported an issue?</p>
-              <p className="text-brand-100 text-sm mb-4">Track your complaint status with your ticket ID.</p>
-              <button onClick={() => navigate('/track')} className="w-full py-2 bg-white text-brand-700 font-semibold rounded-xl text-sm hover:bg-brand-50 transition-colors">
+              <p className="font-semibold mb-2">Already reported?</p>
+              <p className="text-brand-100 text-sm mb-4">Track your complaint with your ticket ID.</p>
+              <button
+                onClick={() => navigate('/track')}
+                className="w-full py-2 bg-white text-brand-700 font-semibold rounded-xl text-sm hover:bg-brand-50 transition-colors"
+              >
                 Track Complaint →
               </button>
+            </div>
+
+            {/* Tips */}
+            <div className="card p-5">
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Tips for Better Reports</p>
+              <ul className="space-y-2 text-xs text-slate-600">
+                <li className="flex gap-2"><span>📍</span> Include the exact street address or landmark</li>
+                <li className="flex gap-2"><span>📸</span> Photos help departments respond faster</li>
+                <li className="flex gap-2"><span>📝</span> More detail = higher priority score</li>
+                <li className="flex gap-2"><span>⚠️</span> Mark urgent only for safety hazards</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -413,13 +416,10 @@ export default function ReportIssuePage() {
       {/* Footer */}
       <footer className="border-t border-slate-100 bg-white py-6 px-6 mt-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div>
-            <p className="font-display font-bold text-slate-900 text-sm">CityPulse AI</p>
-            <p className="text-xs text-slate-400">© 2024 Digital Curator Systems</p>
-          </div>
+          <p className="font-display font-bold text-slate-900 text-sm">CityPulse AI</p>
           <div className="flex gap-6">
-            {['PRIVACY POLICY', 'TERMS OF SERVICE', 'API STATUS', 'CONTACT'].map((l) => (
-              <button key={l} className="text-xs text-slate-400 hover:text-slate-600 font-semibold tracking-wide">{l}</button>
+            {['Privacy Policy', 'Terms of Service', 'API Status'].map(l => (
+              <button key={l} className="text-xs text-slate-400 hover:text-slate-600">{l}</button>
             ))}
           </div>
         </div>

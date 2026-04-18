@@ -1,30 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
 import { issuesAPI } from '../services/api';
-import { formatDateTime, getPriorityBadge, getStatusBadge, getCategoryConfig, DEPARTMENTS } from '../utils/helpers';
+import { formatDateTime, getPriorityBadge, getStatusBadge, getCategoryConfig, DEPARTMENTS, getInitials } from '../utils/helpers';
 
-// ── Status Update Modal ─────────────────────────────────
+// ── Status Update Modal ────────────────────────────────
 function StatusModal({ issue, onClose, onSave }) {
   const STATUSES = [
     { id: 'in_progress', label: 'In Progress', icon: '↻' },
-    { id: 'resolved', label: 'Resolved', icon: '✓' },
-    { id: 'on_hold', label: 'On Hold', icon: '⏸' },
-    { id: 'escalated', label: 'Escalated', icon: '!' },
+    { id: 'resolved',    label: 'Resolved',    icon: '✓' },
+    { id: 'on_hold',     label: 'On Hold',      icon: '⏸' },
+    { id: 'escalated',   label: 'Escalated',    icon: '!' },
   ];
   const [status, setStatus] = useState(issue.status);
   const [notes, setNotes] = useState('');
   const [notify, setNotify] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSave = async () => {
     setSaving(true);
+    setError('');
     try {
       await issuesAPI.updateStatus(issue._id, { status, notes, notifyCitizen: notify });
       onSave();
       onClose();
     } catch (err) {
-      alert(err.response?.data?.message || 'Update failed');
+      setError(err.response?.data?.message || 'Update failed');
     } finally {
       setSaving(false);
     }
@@ -35,11 +37,11 @@ function StatusModal({ issue, onClose, onSave }) {
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md animate-slide-up">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <h3 className="font-display font-bold text-xl text-slate-900">Update Status</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500">×</button>
+          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 text-xl">×</button>
         </div>
         <div className="p-6 space-y-5">
           <div className="flex items-center gap-3">
-            <p className="text-sm text-slate-500">Current Status</p>
+            <p className="text-sm text-slate-500">Current:</p>
             <span className={`badge ${getStatusBadge(issue.status).color}`}>{getStatusBadge(issue.status).label}</span>
           </div>
           <div>
@@ -59,26 +61,22 @@ function StatusModal({ issue, onClose, onSave }) {
             </div>
           </div>
           <div>
-            <p className="label">Update Details/Notes</p>
+            <p className="label">Notes</p>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={3}
-              placeholder="e.g., Maintenance crew dispatched to 5th & Main. Debris clearance underway."
+              placeholder="Describe what action was taken..."
               className="input-field resize-none"
             />
           </div>
           <div className="flex items-center justify-between p-3 bg-brand-50 rounded-xl">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <polyline points="22 2 15 22 11 13 2 9 22 2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="text-sm font-semibold text-slate-700">Notify Reporting Citizen</span>
-            </div>
+            <span className="text-sm font-semibold text-slate-700">Notify Reporting Citizen</span>
             <button onClick={() => setNotify(!notify)} className={`w-10 h-5 rounded-full transition-all relative ${notify ? 'bg-brand-600' : 'bg-slate-300'}`}>
               <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${notify ? 'left-5' : 'left-0.5'}`} />
             </button>
           </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>
         <div className="flex gap-3 p-6 border-t border-slate-100">
           <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
@@ -91,26 +89,26 @@ function StatusModal({ issue, onClose, onSave }) {
   );
 }
 
-// ── Reassign Modal ──────────────────────────────────────
+// ── Reassign Modal ─────────────────────────────────────
 function ReassignModal({ issue, onClose, onSave }) {
   const [selected, setSelected] = useState('');
   const [reason, setReason] = useState('');
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const filtered = DEPARTMENTS.filter(d =>
-    d.label.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = DEPARTMENTS.filter(d => d.label.toLowerCase().includes(search.toLowerCase()));
 
   const handleSave = async () => {
-    if (!selected) return alert('Please select a department');
+    if (!selected) return setError('Please select a department');
     setSaving(true);
+    setError('');
     try {
       await issuesAPI.reassign(issue._id, { department: selected, reason });
       onSave();
       onClose();
     } catch (err) {
-      alert(err.response?.data?.message || 'Reassignment failed');
+      setError(err.response?.data?.message || 'Reassignment failed');
     } finally {
       setSaving(false);
     }
@@ -121,17 +119,17 @@ function ReassignModal({ issue, onClose, onSave }) {
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg animate-slide-up">
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <h3 className="font-display font-bold text-xl text-slate-900">Reassign Department</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500">×</button>
+          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-500 text-xl">×</button>
         </div>
         <div className="p-6 space-y-4">
           <input
             type="text"
-            placeholder="Search departments or agencies..."
+            placeholder="Search departments..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="input-field"
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto scrollbar-thin">
             {filtered.map(({ id, label, icon, staff, load }) => (
               <button
                 key={id}
@@ -140,36 +138,21 @@ function ReassignModal({ issue, onClose, onSave }) {
                   selected === label ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:border-slate-300'
                 }`}
               >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 ${
-                  selected === label ? 'bg-brand-100' : 'bg-slate-100'
-                }`}>{icon}</div>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 ${selected === label ? 'bg-brand-100' : 'bg-slate-100'}`}>
+                  {icon}
+                </div>
                 <div className="min-w-0">
                   <p className={`text-sm font-bold leading-tight ${selected === label ? 'text-brand-700' : 'text-slate-800'}`}>{label}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    <span className={`w-1.5 h-1.5 rounded-full inline-block mr-1 ${
-                      load === 'Low Load' ? 'bg-green-500' : load === 'Optimal' ? 'bg-green-400' : 'bg-orange-400'
-                    }`}></span>
-                    {staff} active staff • {load}
-                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">{staff} staff · {load}</p>
                 </div>
-                {selected === label && (
-                  <svg className="w-4 h-4 text-brand-600 ml-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                  </svg>
-                )}
               </button>
             ))}
           </div>
           <div>
-            <p className="label">Reason for Reassignment <span className="text-slate-400 normal-case font-normal">(Optional)</span></p>
-            <textarea
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              rows={3}
-              placeholder="Explain why this issue is being moved..."
-              className="input-field resize-none"
-            />
+            <p className="label">Reason <span className="text-slate-400 normal-case font-normal">(optional)</span></p>
+            <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} placeholder="Explain why..." className="input-field resize-none" />
           </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>
         <div className="flex gap-3 p-6 border-t border-slate-100">
           <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
@@ -182,15 +165,15 @@ function ReassignModal({ issue, onClose, onSave }) {
   );
 }
 
-// ── Main Page ────────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────
 export default function IssueDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'status' | 'reassign' | null
+  const [modal, setModal] = useState(null);
 
-  const fetchIssue = async () => {
+  const fetchIssue = useCallback(async () => {
     try {
       const { data } = await issuesAPI.getById(id);
       setIssue(data.issue);
@@ -199,14 +182,17 @@ export default function IssueDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  useEffect(() => { fetchIssue(); }, [id]);
+  useEffect(() => { fetchIssue(); }, [fetchIssue]);
 
   if (loading) return (
     <AdminLayout>
       <div className="p-6 flex items-center justify-center min-h-96">
-        <div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
+          <p className="text-sm text-slate-400">Loading issue details…</p>
+        </div>
       </div>
     </AdminLayout>
   );
@@ -214,9 +200,10 @@ export default function IssueDetailPage() {
   if (!issue) return (
     <AdminLayout>
       <div className="p-6 text-center py-20">
-        <p className="text-4xl mb-4">🔍</p>
+        <p className="text-5xl mb-4">🔍</p>
         <h2 className="font-display font-bold text-xl text-slate-900 mb-2">Issue Not Found</h2>
-        <button onClick={() => navigate('/issues')} className="btn-primary mt-4">Back to Issues</button>
+        <p className="text-slate-500 mb-6">This ticket ID doesn't exist or was deleted.</p>
+        <button onClick={() => navigate('/issues')} className="btn-primary">← Back to Issues</button>
       </div>
     </AdminLayout>
   );
@@ -224,10 +211,13 @@ export default function IssueDetailPage() {
   const pri = getPriorityBadge(issue.priority);
   const sta = getStatusBadge(issue.status);
   const cat = getCategoryConfig(issue.category);
+  const reporter = issue.reportedBy;
+  const assignee = issue.assignedTo;
 
   return (
     <AdminLayout>
       <div className="p-6 max-w-7xl mx-auto">
+
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-5">
           <button onClick={() => navigate('/dashboard')} className="hover:text-slate-700">Dashboard</button>
@@ -241,13 +231,14 @@ export default function IssueDetailPage() {
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <span className="font-display text-brand-600 font-bold">#{issue.ticketId}</span>
-              <span className={`badge ${sta.color} font-bold`}>{sta.label.toUpperCase()}</span>
+              <span className="font-mono text-brand-600 font-bold">#{issue.ticketId}</span>
+              <span className={`badge ${sta.color} font-bold uppercase text-xs`}>{sta.label}</span>
+              {issue.isUrgent && <span className="badge bg-red-100 text-red-700 font-bold text-xs">⚠️ URGENT</span>}
             </div>
             <h1 className="font-display text-3xl font-bold text-slate-900 mb-2">{issue.title}</h1>
             {issue.location?.address && (
               <p className="text-slate-500 flex items-center gap-1.5 text-sm">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" strokeWidth="2"/>
                   <circle cx="12" cy="10" r="3" strokeWidth="2"/>
                 </svg>
@@ -255,44 +246,32 @@ export default function IssueDetailPage() {
               </p>
             )}
           </div>
-          <div className="flex gap-3">
-            <button className="btn-secondary text-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <polyline points="6 9 6 2 18 2 18 9" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" strokeWidth="2"/>
-                <rect x="6" y="14" width="12" height="8" strokeWidth="2"/>
-              </svg>
-              Export PDF
-            </button>
-            <button className="btn-primary text-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeWidth="2"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeWidth="2"/>
-              </svg>
-              Edit Record
+          <div className="flex gap-3 flex-shrink-0">
+            <button className="btn-secondary text-sm">Export PDF</button>
+            <button className="btn-primary text-sm" onClick={() => setModal('status')}>
+              Update Status
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
           {/* Left column */}
           <div className="lg:col-span-2 space-y-5">
+
             {/* Description */}
             <div className="card p-6">
               <p className="label mb-3">Description</p>
               <p className="text-slate-700 leading-relaxed">{issue.description}</p>
             </div>
 
-            {/* Visual Evidence */}
+            {/* Images */}
             {issue.imageUrls?.length > 0 && (
               <div className="card p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="label">Visual Evidence</p>
-                  <button className="text-xs text-brand-600 font-semibold">View All ({issue.imageUrls.length})</button>
-                </div>
+                <p className="label mb-4">Visual Evidence ({issue.imageUrls.length} image{issue.imageUrls.length !== 1 ? 's' : ''})</p>
                 <div className="flex gap-3 flex-wrap">
                   {issue.imageUrls.map((url, i) => (
-                    <img key={i} src={url} alt="" className="w-36 h-28 object-cover rounded-xl border border-slate-200" />
+                    <img key={i} src={url} alt={`Evidence ${i + 1}`} className="w-36 h-28 object-cover rounded-xl border border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" />
                   ))}
                 </div>
               </div>
@@ -319,10 +298,14 @@ export default function IssueDetailPage() {
                         </div>
                         {i < issue.timeline.length - 1 && <div className="w-0.5 flex-1 bg-slate-200 mt-1" />}
                       </div>
-                      <div className="pb-5">
-                        <p className={`font-semibold text-sm ${i === issue.timeline.length - 1 ? 'text-brand-700' : 'text-slate-800'}`}>{event.title}</p>
+                      <div className="pb-5 min-w-0">
+                        <p className={`font-semibold text-sm ${i === issue.timeline.length - 1 ? 'text-brand-700' : 'text-slate-800'}`}>
+                          {event.title}
+                        </p>
                         <p className="text-slate-500 text-sm mt-0.5">{event.description}</p>
-                        <p className="text-xs text-slate-400 mt-1">{event.actor && `${event.actor} • `}{formatDateTime(event.timestamp)}</p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {event.actor && `${event.actor} · `}{formatDateTime(event.timestamp)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -333,58 +316,100 @@ export default function IssueDetailPage() {
 
           {/* Right sidebar */}
           <div className="space-y-4">
-            {/* AI Intelligence */}
-            <div className="card p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-brand-600">✨</span>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Intelligence</p>
-              </div>
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs text-slate-400 font-semibold">Confidence Score</p>
-                  <p className="font-display font-bold text-2xl text-slate-900">{Math.round((issue.aiConfidence || 0) * 100)}%</p>
-                </div>
-                <div className="h-2 bg-slate-100 rounded-full">
-                  <div className="h-full bg-brand-600 rounded-full" style={{ width: `${(issue.aiConfidence || 0) * 100}%` }} />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="label text-[10px]">Predicted Category</p>
-                  <p className="text-sm font-semibold text-slate-800">{issue.aiCategory || cat.label}</p>
-                </div>
-                <div>
-                  <p className="label text-[10px]">Recommended Action</p>
-                  <p className="text-sm font-semibold text-slate-800">{issue.aiRecommendedAction || 'Route to Public Works'}</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Responsibility */}
-            <div className="card p-5">
-              <p className="label mb-4">Responsibility</p>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-sm font-bold">
-                  {issue.assignedTo?.name?.[0] || 'A'}
+            {/* AI Intelligence — only show if AI data exists */}
+            {(issue.aiConfidence > 0 || issue.aiCategory) && (
+              <div className="card p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-brand-600">✨</span>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Intelligence</p>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{issue.assignedTo?.name || 'Officer J. Miller'}</p>
-                  <p className="text-xs text-slate-400">Public Works Department</p>
+                {issue.aiConfidence > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-slate-400 font-semibold">Confidence Score</p>
+                      <p className="font-display font-bold text-2xl text-slate-900">{Math.round(issue.aiConfidence * 100)}%</p>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full">
+                      <div className="h-full bg-brand-600 rounded-full" style={{ width: `${issue.aiConfidence * 100}%` }} />
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-3 text-sm">
+                  {issue.aiCategory && (
+                    <div>
+                      <p className="label text-[10px]">Predicted Category</p>
+                      <p className="font-semibold text-slate-800 capitalize">{issue.aiCategory.replace(/_/g,' ')}</p>
+                    </div>
+                  )}
+                  {issue.aiRecommendedAction && (
+                    <div>
+                      <p className="label text-[10px]">Recommended Action</p>
+                      <p className="font-semibold text-slate-800">{issue.aiRecommendedAction}</p>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="space-y-2 text-sm">
+            )}
+
+            {/* Issue details */}
+            <div className="card p-5">
+              <p className="label mb-4">Issue Details</p>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-500">Category</span>
+                  <span className="font-semibold text-slate-800">{cat.icon} {cat.label}</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-500">Priority</span>
+                  <span className={`badge ${pri.color} text-xs font-bold uppercase`}>{issue.priority}</span>
+                </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-50">
                   <span className="text-slate-500">Department</span>
-                  <span className="font-semibold text-slate-800">{issue.department || 'Public Works'}</span>
+                  <span className="font-semibold text-slate-800">{issue.department || 'Unassigned'}</span>
                 </div>
-                <div className="flex justify-between py-1.5">
-                  <span className="text-slate-500">SLA Deadline</span>
-                  {issue.slaDeadline && (
+                <div className="flex justify-between py-1.5 border-b border-slate-50">
+                  <span className="text-slate-500">Reported</span>
+                  <span className="text-slate-700">{formatDateTime(issue.createdAt)}</span>
+                </div>
+                {issue.slaDeadline && (
+                  <div className="flex justify-between py-1.5 border-b border-slate-50">
+                    <span className="text-slate-500">SLA Deadline</span>
                     <span className={`font-semibold ${new Date(issue.slaDeadline) < new Date() ? 'text-red-600' : 'text-slate-800'}`}>
                       {formatDateTime(issue.slaDeadline)}
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
+                {/* Reporter — from real DB, not hardcoded */}
+                {reporter && (
+                  <div className="pt-1">
+                    <p className="label text-[10px] mb-2">Reported By</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">
+                        {getInitials(reporter.name)}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800">{reporter.name}</p>
+                        <p className="text-[10px] text-slate-400">{reporter.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Assignee — from real DB, not hardcoded */}
+                {assignee && (
+                  <div className="pt-1">
+                    <p className="label text-[10px] mb-2">Assigned To</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">
+                        {getInitials(assignee.name)}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-800">{assignee.name}</p>
+                        <p className="text-[10px] text-slate-400">{assignee.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -396,16 +421,13 @@ export default function IssueDetailPage() {
                   onClick={() => issuesAPI.updateStatus(issue._id, { status: 'resolved', notes: 'Marked resolved by admin' }).then(fetchIssue)}
                   className="w-full py-2.5 bg-brand-600 hover:bg-brand-500 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-                  </svg>
-                  Mark as Resolved
+                  ✓ Mark as Resolved
                 </button>
                 <button
                   onClick={() => setModal('reassign')}
                   className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
                 >
-                  ⇄ Reassign Dept
+                  ⇄ Reassign Department
                 </button>
                 <button
                   onClick={() => setModal('status')}
@@ -420,8 +442,7 @@ export default function IssueDetailPage() {
         </div>
       </div>
 
-      {/* Modals */}
-      {modal === 'status' && <StatusModal issue={issue} onClose={() => setModal(null)} onSave={fetchIssue} />}
+      {modal === 'status'   && <StatusModal   issue={issue} onClose={() => setModal(null)} onSave={fetchIssue} />}
       {modal === 'reassign' && <ReassignModal issue={issue} onClose={() => setModal(null)} onSave={fetchIssue} />}
     </AdminLayout>
   );

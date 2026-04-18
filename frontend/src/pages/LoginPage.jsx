@@ -180,15 +180,11 @@ export default function LoginPage() {
             Access the neural network of city management. Real-time insights, civic health metrics, and automated issue resolution in one unified dashboard.
           </p>
 
-          <div className="mt-10 bg-white rounded-2xl border border-slate-100 p-4 inline-flex items-center gap-3 shadow-sm">
-            <div className="flex -space-x-2">
-              {['#2563eb', '#7c3aed', '#dc2626'].map((c, i) => (
-                <div key={i} className="w-8 h-8 rounded-full border-2 border-white" style={{ backgroundColor: c }} />
-              ))}
-            </div>
+          <div className="mt-10 bg-brand-50 border border-brand-100 rounded-2xl p-4 inline-flex items-center gap-3">
+            <span className="text-2xl">🏙️</span>
             <div>
-              <p className="text-sm font-semibold text-slate-800">Join 400+ City Managers</p>
-              <p className="text-xs text-orange-500 font-bold">⭐ TOP RATED GOV-TECH</p>
+              <p className="text-sm font-semibold text-brand-900">Civic Issue Reporting</p>
+              <p className="text-xs text-brand-600">AI-powered urban management</p>
             </div>
           </div>
         </div>
