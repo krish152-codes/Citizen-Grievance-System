@@ -1,13 +1,12 @@
-const { classifyIssue, detectGarbage, sentimentAnalysis } = require('../services/aiService');
+const { classifyIssue, generateApplicationLetter, detectGarbage, sentimentAnalysis } = require('../services/aiService');
+const Issue = require('../models/Issue');
 
-// @desc    Classify an issue from text
-// @route   POST /api/ai/classify
-// @access  Public
+// POST /api/ai/classify
 const classify = async (req, res) => {
   try {
     const { text } = req.body;
-    if (!text) {
-      return res.status(400).json({ success: false, message: 'Text is required' });
+    if (!text || text.trim().length < 3) {
+      return res.status(400).json({ success: false, message: 'Text is required (min 3 chars)' });
     }
     const result = await classifyIssue(text);
     res.json({ success: true, result });
@@ -16,9 +15,19 @@ const classify = async (req, res) => {
   }
 };
 
-// @desc    Detect garbage in image
-// @route   POST /api/ai/detect
-// @access  Public
+// POST /api/ai/preview-classify  (for live form preview, no saving)
+const previewClassify = async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || text.length < 10) return res.json({ success: true, result: null });
+    const result = await classifyIssue(text);
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/ai/detect
 const detect = async (req, res) => {
   try {
     const imagePath = req.file ? req.file.path : req.body.imagePath;
@@ -32,9 +41,7 @@ const detect = async (req, res) => {
   }
 };
 
-// @desc    Perform sentiment analysis
-// @route   POST /api/ai/sentiment
-// @access  Public
+// POST /api/ai/sentiment
 const sentiment = async (req, res) => {
   try {
     const { text } = req.body;
@@ -48,4 +55,22 @@ const sentiment = async (req, res) => {
   }
 };
 
-module.exports = { classify, detect, sentiment };
+// POST /api/ai/generate-letter  — generate formal complaint letter for an issue
+const generateLetter = async (req, res) => {
+  try {
+    const { issueId } = req.body;
+    if (!issueId) {
+      return res.status(400).json({ success: false, message: 'issueId is required' });
+    }
+    const issue = await Issue.findById(issueId).populate('reportedBy', 'name email phone');
+    if (!issue) {
+      return res.status(404).json({ success: false, message: 'Issue not found' });
+    }
+    const result = await generateApplicationLetter(issue);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { classify, previewClassify, detect, sentiment, generateLetter };
