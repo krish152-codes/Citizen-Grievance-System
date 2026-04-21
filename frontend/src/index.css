@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet map z-index fixes */
+.leaflet-pane { z-index: 400; }
+.leaflet-top, .leaflet-bottom { z-index: 1000; }
+.leaflet-control { z-index: 1000; }
+.leaflet-popup-pane { z-index: 700; }
+.leaflet-popup-content p { margin: 0; }
+.leaflet-popup-content-wrapper { border-radius: 12px !important; padding: 4px !important; }
+.leaflet-popup-tip-container { display: none; }
+
 @layer base {
   * {
     box-sizing: border-box;
