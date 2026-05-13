@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import PublicNav from '../components/layout/PublicNav';
+import VoiceRecorder from '../components/voice/VoiceRecorder';
 import { issuesAPI, aiAPI, analyticsAPI } from '../services/api';
 
 const CATEGORIES = [
@@ -22,24 +23,37 @@ const PRIORITY_BADGE = {
   low:      'bg-green-100 text-green-700',
 };
 
+const SEVERITY_BADGE = {
+  critical: 'bg-red-100 text-red-700 border border-red-300',
+  high:     'bg-orange-100 text-orange-700 border border-orange-300',
+  medium:   'bg-yellow-100 text-yellow-700 border border-yellow-300',
+  low:      'bg-green-100 text-green-700 border border-green-300',
+};
+
 export default function ReportIssuePage() {
   const navigate = useNavigate();
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
   const descValue = watch('description', '');
 
+  // Media state
   const [images, setImages]             = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [voiceBlob, setVoiceBlob]       = useState(null);
+  const [transcript, setTranscript]     = useState('');
+
+  // UI state
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [aiPreview, setAiPreview]       = useState(null);
-  const [aiLoading, setAiLoading]       = useState(false);
-  const [submitting, setSubmitting]     = useState(false);
-  const [submitted, setSubmitted]       = useState(null);
-  const [isUrgent, setIsUrgent]         = useState(false);
-  const [isDragging, setIsDragging]     = useState(false);
-  const [sidebarStats, setSidebarStats] = useState(null);
-  const [locationText, setLocationText] = useState('');
-  const [gpsCoords, setGpsCoords]       = useState(null);
-  const [detectingLoc, setDetectingLoc] = useState(false);
+  const [aiPreview, setAiPreview]         = useState(null);
+  const [aiLoading, setAiLoading]         = useState(false);
+  const [submitting, setSubmitting]       = useState(false);
+  const [submitted, setSubmitted]         = useState(null);
+  const [isUrgent, setIsUrgent]           = useState(false);
+  const [isDragging, setIsDragging]       = useState(false);
+  const [sidebarStats, setSidebarStats]   = useState(null);
+  const [locationText, setLocationText]   = useState('');
+  const [gpsCoords, setGpsCoords]         = useState(null);
+  const [detectingLoc, setDetectingLoc]   = useState(false);
+  const [imageError, setImageError]       = useState('');
 
   const fileInputRef  = useRef();
   const classifyTimer = useRef();
@@ -50,17 +64,15 @@ export default function ReportIssuePage() {
       .catch(() => {});
   }, []);
 
-  // Debounced AI preview using previewClassify
+  // AI preview on text / transcript change
   const classifyText = useCallback(async (text) => {
-    if (text.length < 15) { setAiPreview(null); return; }
+    if (text.length < 10) { setAiPreview(null); return; }
     setAiLoading(true);
     try {
       const { data } = await aiAPI.previewClassify(text);
       if (data.result) {
         setAiPreview(data.result);
-        if (data.result.category && !selectedCategory) {
-          setSelectedCategory(data.result.category);
-        }
+        if (data.result.category && !selectedCategory) setSelectedCategory(data.result.category);
       }
     } catch { /* silent */ }
     finally { setAiLoading(false); }
@@ -71,30 +83,40 @@ export default function ReportIssuePage() {
     classifyTimer.current = setTimeout(() => classifyText(e.target.value), 800);
   };
 
-  // GPS location detection
+  // Auto-classify when transcript arrives
+  useEffect(() => {
+    if (transcript) {
+      clearTimeout(classifyTimer.current);
+      classifyTimer.current = setTimeout(() => classifyText(transcript), 600);
+    }
+  }, [transcript, classifyText]);
+
+  // GPS
   const detectLocation = () => {
-    if (!navigator.geolocation) return alert('Geolocation not supported by your browser');
+    if (!navigator.geolocation) return alert('Geolocation not supported');
     setDetectingLoc(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setGpsCoords({ lat: latitude, lng: longitude });
-        setLocationText(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+      ({ coords }) => {
+        const { latitude: lat, longitude: lng } = coords;
+        setGpsCoords({ lat, lng });
+        setLocationText(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
         setDetectingLoc(false);
       },
-      () => {
-        alert('Could not get GPS location. Please type the address manually.');
-        setDetectingLoc(false);
-      }
+      () => { alert('Could not get GPS. Type address manually.'); setDetectingLoc(false); }
     );
   };
 
+  // Image handling
   const handleFiles = (files) => {
-    const valid = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 5);
-    setImages(prev => [...prev, ...valid].slice(0, 5));
+    const valid = Array.from(files)
+      .filter(f => /image\/(jpeg|jpg|png|webp)/.test(f.type))
+      .slice(0, 8 - images.length);
+    if (valid.length === 0) return;
+    setImages(prev => [...prev, ...valid].slice(0, 8));
+    setImageError('');
     valid.forEach(file => {
       const reader = new FileReader();
-      reader.onload = e => setImagePreviews(prev => [...prev, e.target.result].slice(0, 5));
+      reader.onload = e => setImagePreviews(prev => [...prev, e.target.result].slice(0, 8));
       reader.readAsDataURL(file);
     });
   };
@@ -110,21 +132,42 @@ export default function ReportIssuePage() {
     setImagePreviews(prev => prev.filter((_, i) => i !== idx));
   };
 
+  // Form submit
   const onSubmit = async (formData) => {
+    // Validate: at least 1 image required
+    if (images.length === 0) {
+      setImageError('At least 1 image is required to submit a complaint.');
+      fileInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const fd = new FormData();
-      fd.append('title', formData.title || formData.description.slice(0, 70));
-      fd.append('description', formData.description);
-      fd.append('category', selectedCategory || aiPreview?.category || 'other');
-      fd.append('isUrgent', isUrgent);
-      fd.append('location', JSON.stringify({
-        address: locationText || formData.location || '',
-        lat:     gpsCoords?.lat || null,
-        lng:     gpsCoords?.lng || null,
+
+      const desc = formData.description?.trim() || transcript || '';
+      fd.append('title',      formData.title || desc.slice(0, 70) || 'Civic Issue Report');
+      fd.append('description', desc);
+      fd.append('category',   selectedCategory || aiPreview?.category || 'other');
+      fd.append('isUrgent',   isUrgent);
+      fd.append('transcript', transcript || '');
+      fd.append('location',   JSON.stringify({
+        address:  locationText || formData.location || '',
+        lat:      gpsCoords?.lat || null,
+        lng:      gpsCoords?.lng || null,
         district: formData.district || '',
       }));
+
+      // Append images (field name: images)
       images.forEach(img => fd.append('images', img));
+
+      // Append voice blob if recorded
+      if (voiceBlob) {
+        const ext  = voiceBlob.type?.includes('webm') ? 'webm' : voiceBlob.type?.includes('mp3') ? 'mp3' : 'wav';
+        const file = voiceBlob instanceof File ? voiceBlob : new File([voiceBlob], `voice.${ext}`, { type: voiceBlob.type || 'audio/webm' });
+        fd.append('voice', file);
+      }
+
       const { data } = await issuesAPI.report(fd);
       setSubmitted(data.issue);
     } catch (err) {
@@ -138,14 +181,17 @@ export default function ReportIssuePage() {
     setSubmitted(null);
     setImages([]);
     setImagePreviews([]);
+    setVoiceBlob(null);
+    setTranscript('');
     setAiPreview(null);
     setSelectedCategory('');
     setLocationText('');
     setGpsCoords(null);
     setIsUrgent(false);
+    setImageError('');
   };
 
-  // ── Success screen ─────────────────────────────────
+  // ── Success screen ─────────────────────────────────────
   if (submitted) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -159,20 +205,32 @@ export default function ReportIssuePage() {
             </div>
             <h2 className="font-display text-3xl font-bold text-slate-900 mb-2">Report Submitted!</h2>
             <p className="text-slate-500 mb-8 text-sm">
-              Your complaint has been received, classified by AI, and routed to the relevant department.
+              Your complaint has been received, analyzed by AI, and routed to the relevant department.
             </p>
+
+            {/* Emergency banner */}
+            {submitted.emergencyFlag && (
+              <div className="bg-red-50 border border-red-300 rounded-2xl p-4 mb-4 flex items-center gap-3">
+                <span className="text-2xl">🚨</span>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-red-700">Emergency Flagged</p>
+                  <p className="text-xs text-red-600">This complaint has been escalated with highest priority.</p>
+                </div>
+              </div>
+            )}
 
             <div className="bg-brand-50 border border-brand-200 rounded-2xl p-6 text-left mb-6">
               <p className="text-xs font-bold text-brand-600 uppercase tracking-wider mb-4">Your Ticket Details</p>
               <div className="space-y-3 text-sm">
                 {[
-                  ['Ticket ID',   submitted.ticketId,                                'font-mono font-bold text-brand-700 text-base'],
-                  ['Title',       submitted.title,                                   'font-semibold text-slate-900'],
-                  ['Category',    submitted.category?.replace(/_/g, ' '),            'capitalize font-medium'],
-                  ['Priority',    submitted.priority,                                `font-bold capitalize ${PRIORITY_BADGE[submitted.priority]?.split(' ')[1]}`],
-                  ['Department',  submitted.department,                              'font-semibold'],
-                  ['AI Score',    `${Math.round((submitted.aiConfidence || 0) * 100)}% confidence`, ''],
-                  ['Status',      'Pending Review',                                  'text-orange-600 font-semibold'],
+                  ['Ticket ID',    submitted.ticketId,                                    'font-mono font-bold text-brand-700 text-base'],
+                  ['Category',     submitted.category?.replace(/_/g, ' '),                'capitalize font-medium'],
+                  ['Priority',     submitted.priority,                                    `font-bold capitalize ${PRIORITY_BADGE[submitted.priority]?.split(' ')[1]}`],
+                  ['Severity',     submitted.aiSeverity || submitted.priority,            `font-bold capitalize ${SEVERITY_BADGE[submitted.aiSeverity]?.split(' ')[1]}`],
+                  ['Department',   submitted.department,                                  'font-semibold'],
+                  ['AI Score',     `${Math.round((submitted.aiConfidence || 0) * 100)}% confidence`, ''],
+                  ['Criticality',  `${submitted.aiCriticality || 0}/10`,                 'font-bold text-orange-600'],
+                  ['Status',       'Pending Review',                                      'text-orange-600 font-semibold'],
                 ].map(([label, value, cls]) => (
                   <div key={label} className="flex justify-between items-center py-1.5 border-b border-brand-100 last:border-0">
                     <span className="text-slate-500">{label}</span>
@@ -181,6 +239,22 @@ export default function ReportIssuePage() {
                 ))}
               </div>
             </div>
+
+            {/* AI Generated Summary */}
+            {submitted.aiGeneratedSummary && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left mb-4">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">🤖 AI Generated Summary</p>
+                <p className="text-sm text-slate-800">{submitted.aiGeneratedSummary}</p>
+              </div>
+            )}
+
+            {/* Transcript */}
+            {submitted.transcript && (
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left mb-4">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">🎤 Voice Transcript</p>
+                <p className="text-sm text-slate-700 italic">"{submitted.transcript}"</p>
+              </div>
+            )}
 
             {submitted.aiRecommendedAction && (
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left mb-6">
@@ -193,12 +267,8 @@ export default function ReportIssuePage() {
               <button onClick={() => navigate(`/track?id=${submitted.ticketId}`)} className="btn-primary">
                 Track Status →
               </button>
-              <button onClick={resetForm} className="btn-secondary">
-                Report Another
-              </button>
-              <button onClick={() => navigate('/')} className="btn-ghost">
-                Go Home
-              </button>
+              <button onClick={resetForm} className="btn-secondary">Report Another</button>
+              <button onClick={() => navigate('/')} className="btn-ghost">Go Home</button>
             </div>
           </div>
         </div>
@@ -206,7 +276,7 @@ export default function ReportIssuePage() {
     );
   }
 
-  // ── Main form ────────────────────────────────────────
+  // ── Main form ──────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50">
       <PublicNav />
@@ -218,17 +288,119 @@ export default function ReportIssuePage() {
             <div className="card p-8 animate-slide-up">
               <p className="section-tag mb-2">Issue Reporting</p>
               <h1 className="font-display text-3xl font-bold text-slate-900 mb-2">Report New Issue</h1>
-              <p className="text-slate-500 mb-8 text-sm">
-                Describe the issue in detail. AI will classify it, set the priority, and route it to the correct department automatically.
+              <p className="text-slate-500 mb-2 text-sm">
+                Upload at least one photo of the issue. Add voice or text description — AI will analyze everything automatically.
               </p>
+              <div className="flex items-center gap-2 mb-8">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700">
+                  <span>🤖</span> AI Multimodal Analysis
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 rounded-full text-xs font-semibold text-red-700">
+                  📸 Photo Required
+                </span>
+              </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-                {/* Category */}
+                {/* ── MANDATORY IMAGE UPLOAD ── */}
+                <div>
+                  <label className="label">
+                    Visual Evidence{' '}
+                    <span className="text-red-500 font-bold">* Required</span>
+                    <span className="text-slate-400 normal-case font-normal ml-1">(1–8 photos, JPG/PNG/WebP)</span>
+                  </label>
+                  <div
+                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
+                      imageError
+                        ? 'border-red-400 bg-red-50'
+                        : isDragging
+                        ? 'border-brand-400 bg-brand-50'
+                        : images.length > 0
+                        ? 'border-green-400 bg-green-50'
+                        : 'border-slate-200 bg-slate-50 hover:border-brand-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 ${images.length > 0 ? 'bg-green-100' : 'bg-brand-100'}`}>
+                      {images.length > 0 ? (
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <polyline points="16 16 12 12 8 16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <line x1="12" y1="12" x2="12" y2="21" strokeWidth="2" strokeLinecap="round"/>
+                          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    {images.length > 0 ? (
+                      <>
+                        <p className="text-sm font-semibold text-green-700 mb-1">{images.length} image{images.length > 1 ? 's' : ''} uploaded ✓</p>
+                        <p className="text-xs text-green-600">Click or drag to add more (max 8)</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold text-slate-700 mb-1">Drag & drop or click to upload photos</p>
+                        <p className="text-xs text-slate-400">JPG, PNG, WebP — max 10MB each</p>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={e => handleFiles(e.target.files)}
+                  />
+                  {imageError && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                      <span>⚠️</span> {imageError}
+                    </p>
+                  )}
+                  {imagePreviews.length > 0 && (
+                    <div className="flex gap-2 mt-3 flex-wrap">
+                      {imagePreviews.map((src, i) => (
+                        <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 group">
+                          <img src={src} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={e => { e.stopPropagation(); removeImage(i); }}
+                            className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 text-white flex items-center justify-center text-xl font-bold transition-opacity"
+                          >×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── VOICE RECORDER ── */}
+                <div>
+                  <label className="label">
+                    Voice Message{' '}
+                    <span className="text-slate-400 normal-case font-normal">(optional — AI will transcribe & analyze)</span>
+                  </label>
+                  <VoiceRecorder
+                    onVoiceReady={(blob) => setVoiceBlob(blob)}
+                    onTranscript={(text) => setTranscript(text)}
+                  />
+                  {transcript && (
+                    <div className="mt-2 p-3 bg-brand-50 border border-brand-200 rounded-xl">
+                      <p className="text-xs font-bold text-brand-700 mb-1">🎤 Transcript detected:</p>
+                      <p className="text-xs text-brand-800 italic">"{transcript}"</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── CATEGORY ── */}
                 <div>
                   <label className="label">
                     Issue Category{' '}
-                    <span className="text-slate-400 normal-case font-normal">(AI auto-detects if left blank)</span>
+                    <span className="text-slate-400 normal-case font-normal">(AI auto-detects)</span>
                   </label>
                   <div className="grid grid-cols-4 gap-2">
                     {CATEGORIES.map(({ id, label, icon }) => (
@@ -248,39 +420,25 @@ export default function ReportIssuePage() {
                   </div>
                 </div>
 
-                {/* Description */}
+                {/* ── DESCRIPTION (optional now) ── */}
                 <div>
-                  <label className="label">Detailed Description *</label>
+                  <label className="label">
+                    Text Description{' '}
+                    <span className="text-slate-400 normal-case font-normal">(optional if voice/image provided)</span>
+                  </label>
                   <div className="relative">
                     <textarea
-                      {...register('description', {
-                        required: 'Please describe the issue',
-                        minLength: { value: 15, message: 'Minimum 15 characters for better AI classification' },
-                      })}
+                      {...register('description')}
                       onChange={handleDescChange}
-                      rows={6}
-                      placeholder="Describe what you see — location, severity, how long it's been there, who is affected, any safety risk..."
-                      className="input-field resize-none pr-12"
+                      rows={4}
+                      placeholder="Add any additional details — location clues, safety risks, duration of problem…"
+                      className="input-field resize-none"
                     />
-                    <button
-                      type="button"
-                      title="Voice input (coming soon)"
-                      className="absolute bottom-3 right-3 w-8 h-8 bg-brand-600 rounded-full flex items-center justify-center hover:bg-brand-700 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" strokeWidth="2"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" strokeWidth="2" strokeLinecap="round"/>
-                        <line x1="12" y1="19" x2="12" y2="23" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </button>
                   </div>
-                  {errors.description && (
-                    <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>
-                  )}
                   <p className="text-xs text-slate-400 mt-1 text-right">{descValue?.length || 0} characters</p>
                 </div>
 
-                {/* AI Live Preview */}
+                {/* ── AI LIVE PREVIEW ── */}
                 {(aiPreview || aiLoading) && (
                   <div className="rounded-2xl border border-brand-200 bg-brand-50 p-5">
                     <div className="flex items-center gap-2 mb-3">
@@ -327,9 +485,7 @@ export default function ReportIssuePage() {
                         {aiPreview?.recommendedAction && (
                           <p className="text-xs text-brand-700 mt-3 flex items-center gap-1.5">
                             <span>💡</span>
-                            <span>
-                              <span className="font-bold">Recommended:</span> {aiPreview.recommendedAction}
-                            </span>
+                            <span><span className="font-bold">Recommended:</span> {aiPreview.recommendedAction}</span>
                           </p>
                         )}
                       </>
@@ -337,14 +493,14 @@ export default function ReportIssuePage() {
                   </div>
                 )}
 
-                {/* Location with GPS */}
+                {/* ── LOCATION ── */}
                 <div>
                   <label className="label">Location / Address</label>
                   <div className="flex gap-2">
                     <input
                       value={locationText}
                       onChange={e => setLocationText(e.target.value)}
-                      placeholder="Street address, landmark, or area name..."
+                      placeholder="Street address, landmark, or area name…"
                       className="input-field flex-1"
                     />
                     <button
@@ -352,7 +508,7 @@ export default function ReportIssuePage() {
                       onClick={detectLocation}
                       disabled={detectingLoc}
                       className="btn-secondary px-3 flex-shrink-0 text-sm gap-1.5"
-                      title="Use GPS location"
+                      title="Use GPS"
                     >
                       {detectingLoc ? (
                         <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
@@ -370,9 +526,7 @@ export default function ReportIssuePage() {
                     </button>
                   </div>
                   {gpsCoords && (
-                    <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                      ✓ GPS coordinates captured: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}
-                    </p>
+                    <p className="text-xs text-green-600 mt-1">✓ GPS: {gpsCoords.lat.toFixed(5)}, {gpsCoords.lng.toFixed(5)}</p>
                   )}
                   <input
                     {...register('district')}
@@ -381,60 +535,7 @@ export default function ReportIssuePage() {
                   />
                 </div>
 
-                {/* Image upload */}
-                <div>
-                  <label className="label">
-                    Visual Evidence{' '}
-                    <span className="text-slate-400 normal-case font-normal">(optional, up to 5 photos)</span>
-                  </label>
-                  <div
-                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                    onDragLeave={() => setIsDragging(false)}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                      isDragging
-                        ? 'border-brand-400 bg-brand-50'
-                        : 'border-slate-200 bg-slate-50 hover:border-brand-300 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <polyline points="16 16 12 12 8 16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <line x1="12" y1="12" x2="12" y2="21" strokeWidth="2" strokeLinecap="round"/>
-                        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" strokeWidth="2" strokeLinecap="round"/>
-                      </svg>
-                    </div>
-                    <p className="text-sm font-semibold text-slate-700 mb-1">Drag & drop images or click to browse</p>
-                    <p className="text-xs text-slate-400">JPG, PNG, WebP — max 10MB each</p>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={e => handleFiles(e.target.files)}
-                  />
-                  {imagePreviews.length > 0 && (
-                    <div className="flex gap-2 mt-3 flex-wrap">
-                      {imagePreviews.map((src, i) => (
-                        <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 group">
-                          <img src={src} alt="" className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(i)}
-                            className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 text-white flex items-center justify-center text-xl font-bold transition-opacity"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Mark urgent */}
+                {/* ── URGENT TOGGLE ── */}
                 <button
                   type="button"
                   onClick={() => setIsUrgent(!isUrgent)}
@@ -456,18 +557,22 @@ export default function ReportIssuePage() {
                   </div>
                 </button>
 
-                {/* Submit */}
+                {/* ── SUBMIT ── */}
                 <button type="submit" disabled={submitting} className="btn-primary w-full py-4 text-base">
                   {submitting ? (
                     <span className="flex items-center gap-2 justify-center">
                       <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      Submitting & Classifying…
+                      Submitting & AI Analyzing…
                     </span>
-                  ) : 'Submit Report →'}
+                  ) : (
+                    <span className="flex items-center gap-2 justify-center">
+                      🤖 Submit Report with AI Analysis →
+                    </span>
+                  )}
                 </button>
 
                 <p className="text-xs text-center text-slate-400">
-                  By submitting you agree to our Terms of Service. Your report will be processed by Nagar Mitra.
+                  At least 1 photo is required. Voice & text are optional. AI will analyze all evidence automatically.
                 </p>
               </form>
             </div>
@@ -475,6 +580,25 @@ export default function ReportIssuePage() {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* AI Features card */}
+            <div className="card p-5 bg-brand-50 border-brand-100">
+              <p className="text-xs font-bold text-brand-700 uppercase tracking-wider mb-3">🤖 AI Features Active</p>
+              <div className="space-y-2">
+                {[
+                  { icon: '📸', text: 'Image visual analysis' },
+                  { icon: '🎤', text: 'Voice transcription & NLP' },
+                  { icon: '🧠', text: 'Multimodal AI classification' },
+                  { icon: '🚨', text: 'Emergency auto-detection' },
+                  { icon: '📋', text: 'Auto-generated complaint summary' },
+                  { icon: '🏢', text: 'Smart department routing' },
+                ].map(({ icon, text }) => (
+                  <div key={text} className="flex gap-2 items-center text-xs text-brand-800">
+                    <span>{icon}</span><span>{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {sidebarStats && sidebarStats.totalIssues > 0 ? (
               <div className="card p-5">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Live Platform Stats</p>
@@ -501,38 +625,16 @@ export default function ReportIssuePage() {
                       <span className="font-bold text-green-600">{sidebarStats.resolutionRate}%</span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full">
-                      <div
-                        className="h-full bg-green-500 rounded-full"
-                        style={{ width: `${sidebarStats.resolutionRate}%` }}
-                      />
+                      <div className="h-full bg-green-500 rounded-full" style={{ width: `${sidebarStats.resolutionRate}%` }} />
                     </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="card p-5 bg-brand-50 border-brand-100">
-                <p className="text-xs font-bold text-brand-700 uppercase tracking-wider mb-3">How It Works</p>
-                <div className="space-y-3">
-                  {[
-                    { step: '1', text: 'Describe the issue in detail' },
-                    { step: '2', text: 'AI classifies & sets priority automatically' },
-                    { step: '3', text: 'Routed to the correct department' },
-                    { step: '4', text: 'Track progress with your ticket ID' },
-                  ].map(({ step, text }) => (
-                    <div key={step} className="flex gap-2.5 items-start">
-                      <span className="w-5 h-5 bg-brand-600 text-white rounded-full text-xs flex items-center justify-center flex-shrink-0 font-bold">
-                        {step}
-                      </span>
-                      <p className="text-sm text-brand-800">{text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            ) : null}
 
             <div className="card p-5 bg-brand-600 text-white">
               <p className="font-semibold mb-1">Already submitted?</p>
-              <p className="text-brand-100 text-sm mb-4">Track your complaint status using your ticket ID.</p>
+              <p className="text-brand-100 text-sm mb-4">Track your complaint using your ticket ID.</p>
               <button
                 onClick={() => navigate('/track')}
                 className="w-full py-2 bg-white text-brand-700 font-semibold rounded-xl text-sm hover:bg-brand-50 transition-colors"
@@ -545,11 +647,11 @@ export default function ReportIssuePage() {
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Tips for a Good Report</p>
               <ul className="space-y-2">
                 {[
-                  ['📍', 'Include exact street address or landmark'],
-                  ['📸', 'Photos help departments respond faster'],
-                  ['📝', 'Mention how long the issue has existed'],
-                  ['👥', 'Note how many people are affected'],
+                  ['📸', 'Clear photo is mandatory — take a close-up'],
+                  ['🎤', 'Voice message helps AI understand context'],
+                  ['📍', 'Include exact address or drop GPS pin'],
                   ['⚠️', 'Mark urgent only for safety hazards'],
+                  ['📝', 'Text is optional if photo + voice provided'],
                 ].map(([icon, tip]) => (
                   <li key={tip} className="flex items-start gap-2 text-xs text-slate-600">
                     <span className="text-sm flex-shrink-0">{icon}</span>
@@ -565,7 +667,7 @@ export default function ReportIssuePage() {
       <footer className="border-t border-slate-100 bg-white py-6 px-6 mt-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <p className="font-display font-bold text-slate-900 text-sm">Nagar Mitra</p>
-          <p className="text-xs text-slate-400">© 2024 — All reports are processed securely</p>
+          <p className="text-xs text-slate-400">© 2024 — All reports are processed securely with AI analysis</p>
         </div>
       </footer>
     </div>
