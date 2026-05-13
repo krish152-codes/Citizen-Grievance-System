@@ -467,7 +467,7 @@ export default function ReportIssuePage() {
                 </button>
 
                 <p className="text-xs text-center text-slate-400">
-                  By submitting you agree to our Terms of Service. Your report will be processed by CityPulse AI.
+                  By submitting you agree to our Terms of Service. Your report will be processed by Nagar Mitra.
                 </p>
               </form>
             </div>
@@ -564,7 +564,7 @@ export default function ReportIssuePage() {
 
       <footer className="border-t border-slate-100 bg-white py-6 px-6 mt-8">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <p className="font-display font-bold text-slate-900 text-sm">CityPulse AI</p>
+          <p className="font-display font-bold text-slate-900 text-sm">Nagar Mitra</p>
           <p className="text-xs text-slate-400">© 2024 — All reports are processed securely</p>
         </div>
       </footer>

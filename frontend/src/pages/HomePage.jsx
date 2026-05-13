@@ -109,7 +109,7 @@ export default function HomePage() {
       <footer className="border-t border-slate-100 bg-white py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <p className="font-display font-bold text-slate-900 text-sm">CityPulse AI</p>
+            <p className="font-display font-bold text-slate-900 text-sm">Nagar Mitra</p>
             <p className="text-xs text-slate-400">Urban Intelligence Platform</p>
           </div>
           <div className="flex gap-6">

@@ -92,7 +92,7 @@ export default function Sidebar() {
             </svg>
           </div>
           <div>
-            <p className="font-display font-bold text-sm text-slate-900">CityPulse AI</p>
+            <p className="font-display font-bold text-sm text-slate-900">Nagar Mitra</p>
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Urban Intelligence</p>
           </div>
         </div>
