@@ -11,13 +11,30 @@ const generateToken = (userId) => {
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
+// NOTE: phone is now REQUIRED for citizen registration
 const register = async (req, res) => {
   try {
-    const { name, email, password, phone, role } = req.body;
-    console.log('📝 Register attempt:', { name, email, role });
+    const { name, email, password, phone } = req.body;
+    console.log('📝 Register attempt:', { name, email });
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+    // Validate all required fields
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Full name is required' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Email address is required' });
+    }
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required' });
+    }
+
+    // Phone validation — must be 10 digits (Indian format) or international
+    const cleanPhone = phone.trim().replace(/\s|-/g, '');
+    if (!/^\+?[0-9]{10,15}$/.test(cleanPhone)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid phone number (10–15 digits)' });
     }
 
     if (password.length < 6) {
@@ -26,19 +43,9 @@ const register = async (req, res) => {
 
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) {
-      // Instead of error, just log them in (better UX)
-      const token = generateToken(existingUser._id);
-      return res.status(200).json({
-        success: true,
-        message: 'Account already exists — logged in',
-        token,
-        user: {
-          id: existingUser._id,
-          name: existingUser.name,
-          email: existingUser.email,
-          role: existingUser.role,
-          department: existingUser.department,
-        },
+      return res.status(409).json({
+        success: false,
+        message: 'An account with this email already exists. Please login instead.',
       });
     }
 
@@ -46,8 +53,8 @@ const register = async (req, res) => {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password,
-      phone: phone || '',
-      role: role || 'citizen',
+      phone: cleanPhone,
+      role: 'citizen', // public registration always creates citizen
     });
 
     console.log('✅ User created:', user._id, user.email);
@@ -55,12 +62,13 @@ const register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful',
+      message: 'Account created successfully! Welcome to SheharSetu.',
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         department: user.department,
       },
@@ -90,13 +98,13 @@ const login = async (req, res) => {
     }
 
     if (!user.password) {
-      return res.status(401).json({ success: false, message: 'This account uses OTP login. Please use Magic OTP tab.' });
+      return res.status(401).json({ success: false, message: 'This account uses OTP login. Please use the OTP tab.' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       console.log('❌ Wrong password for:', email);
-      return res.status(401).json({ success: false, message: 'Incorrect password. Try: admin123 for admin accounts.' });
+      return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
     }
 
     console.log('✅ Login success:', user.email, user.role);
@@ -110,6 +118,7 @@ const login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         department: user.department,
         avatar: user.avatar,
@@ -133,20 +142,17 @@ const sendOTP = async (req, res) => {
 
     let user = await User.findOne({ email });
     if (!user) {
-      // Create a minimal guest user for OTP login
-      user = await User.create({ name: 'New User', email, role: 'citizen' });
+      return res.status(404).json({ success: false, message: 'No account found with this email. Please register first.' });
     }
 
     const otpCode = user.generateOTP();
     await user.save();
 
-    // In production, send via SMS/email. Here we simulate:
     console.log(`📱 OTP for ${email}: ${otpCode}`);
 
     res.json({
       success: true,
       message: 'OTP sent successfully',
-      // Return OTP in dev mode only
       ...(process.env.NODE_ENV === 'development' && { otp: otpCode }),
     });
   } catch (error) {
@@ -175,14 +181,13 @@ const verifyOTP = async (req, res) => {
     }
 
     if (new Date() > new Date(user.otp.expiresAt)) {
-      return res.status(400).json({ success: false, message: 'OTP has expired' });
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
     }
 
     if (user.otp.code !== otp) {
-      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+      return res.status(400).json({ success: false, message: 'Invalid OTP. Please try again.' });
     }
 
-    // Clear OTP
     user.otp = undefined;
     await user.save();
 
@@ -196,6 +201,7 @@ const verifyOTP = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         department: user.department,
       },
@@ -218,23 +224,4 @@ const getMe = async (req, res) => {
   }
 };
 
-// @desc    Guest login (no credentials needed)
-// @route   POST /api/auth/guest
-// @access  Public
-const guestLogin = async (req, res) => {
-  try {
-    const guestUser = {
-      id: 'guest-' + Date.now(),
-      name: 'Guest User',
-      email: 'guest@sheharsetu.gov',
-      role: 'citizen',
-      isGuest: true,
-    };
-    const token = jwt.sign(guestUser, process.env.JWT_SECRET || 'secret_fallback', { expiresIn: '1d' });
-    res.json({ success: true, token, user: guestUser });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-module.exports = { register, login, sendOTP, verifyOTP, getMe, guestLogin };
+module.exports = { register, login, sendOTP, verifyOTP, getMe };

@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  // Fetch current user profile on mount if token exists
+  // Restore session on mount if token exists
   useEffect(() => {
     const initAuth = async () => {
       if (token) {
@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }) => {
           const { data } = await api.get('/auth/me');
           if (data.success) setUser(data.user);
         } catch {
+          // Token invalid or expired — clear it silently
           localStorage.removeItem('token');
           setToken(null);
           delete api.defaults.headers.common['Authorization'];
