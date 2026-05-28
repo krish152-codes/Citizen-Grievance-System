@@ -4,12 +4,13 @@ import { useAuth } from '../../context/AuthContext';
 import { getInitials } from '../../utils/helpers';
 
 const NAV_ITEMS = [
-  { path: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { path: '/map', label: 'Map View', icon: MapIcon },
-  { path: '/issues', label: 'Issue Logs', icon: ListIcon },
-  { path: '/analytics', label: 'Analytics', icon: AnalyticsIcon },
-  { path: '/ai-analysis', label: 'AI Analysis', icon: AIIcon },
-  { path: '/users', label: 'User Mgmt', icon: UsersIcon },
+  { path: '/dashboard',   label: 'Dashboard',   icon: DashboardIcon },
+  { path: '/map',         label: 'Map View',     icon: MapIcon },
+  { path: '/issues',      label: 'Issue Logs',   icon: ListIcon },
+  { path: '/analytics',   label: 'Analytics',    icon: AnalyticsIcon },
+  { path: '/ai-analysis', label: 'AI Analysis',  icon: AIIcon },
+  { path: '/departments', label: 'Departments',  icon: BuildingIcon }, // ← NEW
+  { path: '/users',       label: 'User Mgmt',    icon: UsersIcon },
 ];
 
 function DashboardIcon() {
@@ -65,6 +66,15 @@ function AIIcon() {
   );
 }
 
+function BuildingIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeWidth="2" strokeLinejoin="round"/>
+      <polyline points="9 22 9 12 15 12 15 22" strokeWidth="2" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 function UsersIcon() {
   return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,14 +102,14 @@ export default function Sidebar() {
             </svg>
           </div>
           <div>
-            <p className="font-display font-bold text-sm text-slate-900">Nagar Mitra</p>
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Urban Intelligence</p>
+            <p className="font-display font-bold text-sm text-slate-900">SheharSetu</p>
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Admin Panel</p>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3 space-y-0.5 sidebar-scroll">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(({ path, label, icon: Icon }) => (
           <button
             key={path}
@@ -114,10 +124,7 @@ export default function Sidebar() {
 
       {/* Report Button */}
       <div className="p-3 border-t border-slate-100">
-        <button
-          onClick={() => navigate('/report')}
-          className="btn-primary w-full text-sm py-2"
-        >
+        <button onClick={() => navigate('/report')} className="btn-primary w-full text-sm py-2">
           <span>+</span> Report New Issue
         </button>
       </div>
@@ -145,7 +152,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* User Info */}
+      {/* User info */}
       {user && (
         <div className="p-3 border-t border-slate-100">
           <div className="flex items-center gap-2.5">

@@ -57,15 +57,24 @@ export const aiAPI = {
 };
 
 export const analyticsAPI = {
-  getSummary:       () => api.get('/analytics/summary'),
-  getCitizenSummary:() => api.get('/analytics/citizen-summary'),
-  getZones:         () => api.get('/analytics/zones'),
+  getSummary:        () => api.get('/analytics/summary'),
+  getCitizenSummary: () => api.get('/analytics/citizen-summary'),
+  getZones:          () => api.get('/analytics/zones'),
 };
 
 export const usersAPI = {
   getAll:  (params)   => api.get('/users', { params }),
   invite:  (data)     => api.post('/users/invite', data),
   update:  (id, data) => api.patch(`/users/${id}`, data),
+};
+
+// ── NEW: Department registry API ─────────────────────────
+export const departmentsAPI = {
+  getAll:          (params)   => api.get('/departments', { params }),
+  create:          (data)     => api.post('/departments', data),
+  update:          (id, data) => api.patch(`/departments/${id}`, data),
+  delete:          (id)       => api.delete(`/departments/${id}`),
+  sendComplaint:   (issueId, data) => api.post(`/departments/send-complaint/${issueId}`, data),
 };
 
 export default api;

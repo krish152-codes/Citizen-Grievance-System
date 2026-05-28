@@ -89,6 +89,8 @@ const classifyIssue = async (text) => {
     category,
     priority,
     confidence: parseFloat(confidence.toFixed(2)),
+    criticalityScore: priority === 'critical' ? 9 : priority === 'high' ? 7 : priority === 'medium' ? 4 : 2,
+    severity: priority,
     department: DEPARTMENT_MAP[category],
     recommendedAction: RECOMMENDED_ACTIONS[category],
     sentiment: {
