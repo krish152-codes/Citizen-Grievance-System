@@ -158,7 +158,7 @@ docker-compose up --build
 
 ---
 
-## 🧠 AI Classification
+##  AI Classification
 
 The AI service uses rule-based keyword matching to classify issues:
 
