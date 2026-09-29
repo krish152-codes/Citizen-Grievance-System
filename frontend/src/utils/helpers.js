@@ -83,3 +83,67 @@ export const DEPARTMENTS = [
   { id: 'parks', label: 'Parks & Recreation', icon: '🌲', staff: 12, load: 'Low Load' },
   { id: 'traffic', label: 'Traffic Management', icon: '🚦', staff: 21, load: 'Moderate' },
 ];
+
+// ─── Smart Drain Monitoring + Drain Echo ────────────────
+// Centralized status → label/color config, mirroring PRIORITY_CONFIG above.
+// Keeping this in one place is what keeps terminology consistent across
+// every drain-module screen (see spec: "avoid inconsistent labels").
+export const WATER_STATUS_CONFIG = {
+  NORMAL:      { label: 'Normal',      color: 'bg-green-100 text-green-700',  dot: 'bg-green-500' },
+  WARNING:     { label: 'Warning',     color: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-500' },
+  HIGH:        { label: 'High',        color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+  CRITICAL:    { label: 'Critical',    color: 'bg-red-100 text-red-700',      dot: 'bg-red-500' },
+  RAPID_RISE:  { label: 'Rapid Rise',  color: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
+};
+
+export const ATMOSPHERE_STATUS_CONFIG = {
+  NORMAL: { label: 'Normal', color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+  ALERT:  { label: 'Atmosphere Alert', color: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+  LOW:    { label: 'Low', color: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+  NOT_INSTALLED: { label: 'Not Installed', color: 'bg-slate-100 text-slate-500', dot: 'bg-slate-300' },
+};
+
+export const DEVICE_STATUS_CONFIG = {
+  ONLINE:  { label: 'Online',  color: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+  OFFLINE: { label: 'Offline', color: 'bg-slate-200 text-slate-600', dot: 'bg-slate-400' },
+};
+
+export const ALERT_SEVERITY_CONFIG = {
+  info:     { label: 'Info',     color: 'bg-blue-100 text-blue-700' },
+  warning:  { label: 'Warning',  color: 'bg-amber-100 text-amber-700' },
+  high:     { label: 'High',     color: 'bg-orange-100 text-orange-700' },
+  critical: { label: 'Critical', color: 'bg-red-100 text-red-700' },
+};
+
+export const ALERT_STATUS_CONFIG = {
+  unacknowledged: { label: 'Unacknowledged', color: 'bg-red-100 text-red-700' },
+  acknowledged:   { label: 'Acknowledged',   color: 'bg-blue-100 text-blue-700' },
+  resolved:       { label: 'Resolved',       color: 'bg-green-100 text-green-700' },
+};
+
+export const INCIDENT_STATUS_CONFIG = {
+  NEW:         { label: 'New',          color: 'bg-slate-100 text-slate-600' },
+  VERIFIED:    { label: 'Verified',     color: 'bg-blue-100 text-blue-700' },
+  ASSIGNED:    { label: 'Assigned',     color: 'bg-indigo-100 text-indigo-700' },
+  IN_PROGRESS: { label: 'In Progress',  color: 'bg-amber-100 text-amber-700' },
+  RESOLVED:    { label: 'Resolved',     color: 'bg-green-100 text-green-700' },
+  CLOSED:      { label: 'Closed',       color: 'bg-slate-200 text-slate-500' },
+};
+export const INCIDENT_STATUS_FLOW = ['NEW', 'VERIFIED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+
+export const DRAIN_ECHO_CLASS_CONFIG = {
+  SILT_SLUDGE:          { label: 'Silt / Sludge',          color: 'bg-amber-100 text-amber-700',  icon: '🟤' },
+  SOLID_WASTE_PLASTIC:  { label: 'Solid Waste / Plastic',  color: 'bg-orange-100 text-orange-700', icon: '🧴' },
+  NORMAL_OPEN:          { label: 'Normal / Open',          color: 'bg-green-100 text-green-700',   icon: '✅' },
+  INCONCLUSIVE:         { label: 'Inconclusive',           color: 'bg-slate-200 text-slate-600',   icon: '❔' },
+};
+
+export const AUDIO_QUALITY_CONFIG = {
+  GOOD:          { label: 'Good',       color: 'bg-green-100 text-green-700' },
+  NOISY:         { label: 'Noisy',      color: 'bg-amber-100 text-amber-700' },
+  TOO_QUIET:     { label: 'Too Quiet',  color: 'bg-orange-100 text-orange-700' },
+  TOO_SHORT:     { label: 'Too Short',  color: 'bg-orange-100 text-orange-700' },
+  INCONCLUSIVE:  { label: 'Inconclusive', color: 'bg-slate-200 text-slate-600' },
+};
+
+export const formatConfidence = (c) => (c == null ? '—' : `${Math.round(c * 100)}%`);

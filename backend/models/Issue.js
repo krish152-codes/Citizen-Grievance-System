@@ -68,6 +68,8 @@ const issueSchema = new mongoose.Schema(
       lat:      { type: Number },
       lng:      { type: Number },
       district: { type: String, default: '' },
+      ward:     { type: String, default: '' }, // ← NEW: used by chatbot location routing
+      zone:     { type: String, default: '' }, // ← NEW
     },
 
     reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -78,6 +80,19 @@ const issueSchema = new mongoose.Schema(
     isUrgent:   { type: Boolean, default: false },
     upvotes:    { type: Number, default: 0 },
     views:      { type: Number, default: 0 },
+
+    // ── AI Complaint Assistant (chatbot/WhatsApp) — all optional, default
+    // preserves exact prior behavior for every existing issue/route ──
+    source: { type: String, enum: ['WEB', 'WHATSAPP', 'AI', 'MANUAL'], default: 'WEB' },
+    conversation: { type: mongoose.Schema.Types.ObjectId, ref: 'Conversation', default: null },
+    originalLanguage: { type: String, default: '' }, // e.g. 'hi' — the citizen's own language, preserved separately from `description`
+    drain: { type: mongoose.Schema.Types.ObjectId, ref: 'Drain', default: null }, // cross-link to Smart Drain Monitoring (spec §62–64)
+    needsAiReview: { type: Boolean, default: false }, // low-confidence AI classification awaiting human review (spec §45, §66)
+    aiCorrections: [{ // structured feedback when a human corrects an AI classification (spec §67) — never auto-retrains anything
+      field: String, previousValue: String, correctedValue: String,
+      correctedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      correctedAt: { type: Date, default: Date.now },
+    }],
   },
   { timestamps: true }
 );

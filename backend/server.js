@@ -12,6 +12,12 @@ const analyticsRoutes   = require('./routes/analytics');
 const userRoutes        = require('./routes/users');
 const departmentRoutes  = require('./routes/departments'); // ← NEW
 
+// ── Smart Drain Monitoring + Drain Echo ──
+const drainRoutes          = require('./routes/drains');
+const alertRoutes          = require('./routes/alerts');
+const drainIncidentRoutes  = require('./routes/drainIncidents');
+const drainEchoRoutes      = require('./routes/drainEcho');
+
 const app = express();
 
 connectDB();
@@ -55,6 +61,22 @@ app.use('/api/ai',          aiRoutes);
 app.use('/api/analytics',   analyticsRoutes);
 app.use('/api/users',       userRoutes);
 app.use('/api/departments', departmentRoutes); // ← NEW
+
+// ── Smart Drain Monitoring + Drain Echo ──
+app.use('/api/drains',    drainRoutes);
+app.use('/api/alerts',    alertRoutes);
+app.use('/api/incidents', drainIncidentRoutes);
+app.use('/api/drain-echo', drainEchoRoutes);
+
+// Optional dev-only sensor simulator — only starts if explicitly enabled,
+// so production/default behavior is completely unaffected.
+if (process.env.SENSOR_SIMULATOR === 'true') {
+  try {
+    require('./utils/sensorSimulator').start();
+  } catch (err) {
+    console.warn('⚠️  Sensor simulator failed to start:', err.message);
+  }
+}
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -13,6 +13,16 @@ const NAV_ITEMS = [
   { path: '/users',       label: 'User Mgmt',    icon: UsersIcon },
 ];
 
+// ── Smart Drain Monitoring + Drain Echo ──
+const DRAIN_NAV_ITEMS = [
+  { path: '/drains',            label: 'Drains',             icon: DrainIcon },
+  { path: '/drains/map',        label: 'Drain Map',          icon: MapIcon },
+  { path: '/alerts',            label: 'Alerts',              icon: AlertIcon },
+  { path: '/incidents',         label: 'Incidents',           icon: IncidentIcon },
+  { path: '/drain-echo',        label: 'Drain Echo',          icon: EchoIcon },
+  { path: '/drain-echo/history', label: 'Drain Echo History', icon: HistoryIcon },
+];
+
 function DashboardIcon() {
   return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,6 +96,52 @@ function UsersIcon() {
   );
 }
 
+// ── Smart Drain Monitoring icons ──
+function DrainIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2.69s-6 6.5-6 10.5a6 6 0 0 0 12 0c0-4-6-10.5-6-10.5z" strokeWidth="2" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function AlertIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" strokeWidth="2" strokeLinejoin="round"/>
+      <line x1="12" y1="9" x2="12" y2="13" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function IncidentIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="16" rx="2" strokeWidth="2"/>
+      <line x1="7" y1="9" x2="17" y2="9" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="7" y1="13" x2="17" y2="13" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="7" y1="17" x2="12" y2="17" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function EchoIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" strokeWidth="2"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="12" y1="19" x2="12" y2="23" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+function HistoryIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M3 12a9 9 0 1 0 3-6.7" strokeWidth="2" strokeLinecap="round"/>
+      <polyline points="3 4 3 9 8 9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="12 7 12 12 16 14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,6 +167,18 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(({ path, label, icon: Icon }) => (
+          <button
+            key={path}
+            onClick={() => navigate(path)}
+            className={`sidebar-link w-full text-left ${location.pathname === path ? 'active' : ''}`}
+          >
+            <Icon />
+            <span>{label}</span>
+          </button>
+        ))}
+
+        <p className="px-3 pt-4 pb-1 text-[10px] font-bold text-slate-300 uppercase tracking-wider">Smart Drain Monitoring</p>
+        {DRAIN_NAV_ITEMS.map(({ path, label, icon: Icon }) => (
           <button
             key={path}
             onClick={() => navigate(path)}

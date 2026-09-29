@@ -3,9 +3,10 @@ const path   = require('path');
 const fs     = require('fs');
 
 // ── Ensure upload directories exist ───────────────────
-const uploadsDir = path.join(__dirname, '../uploads');
-const voiceDir   = path.join(__dirname, '../uploads/voice');
-[uploadsDir, voiceDir].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
+const uploadsDir   = path.join(__dirname, '../uploads');
+const voiceDir     = path.join(__dirname, '../uploads/voice');
+const drainEchoDir = path.join(__dirname, '../uploads/drain-echo'); // ← NEW: Drain Echo audio
+[uploadsDir, voiceDir, drainEchoDir].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 
 // ── Disk storage — images ──────────────────────────────
 const imageStorage = multer.diskStorage({
@@ -82,6 +83,25 @@ const combinedUpload = multer({
   { name: 'voice',  maxCount: 1 },
 ]);
 
+// ── Disk storage — Drain Echo diagnostic audio (NEW) ───
+// Same constraints as voice notes (short recordings), kept in their own
+// folder so Drain Echo evidence is easy to find/manage independently.
+const drainEchoStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, drainEchoDir),
+  filename:    (req, file, cb) => {
+    const suffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext    = path.extname(file.originalname).toLowerCase() || '.webm';
+    cb(null, `echo-${suffix}${ext}`);
+  },
+});
+const MAX_DRAIN_ECHO_AUDIO = 5 * 1024 * 1024; // 5 MB — a ~3s recording is a few hundred KB
+const drainEchoUpload = multer({
+  storage: drainEchoStorage,
+  limits:  { fileSize: MAX_DRAIN_ECHO_AUDIO },
+  fileFilter: voiceFilter, // same allowed audio types as voice notes
+});
+
 module.exports = upload;
-module.exports.voiceUpload    = voiceUpload;
-module.exports.combinedUpload = combinedUpload;
+module.exports.voiceUpload     = voiceUpload;
+module.exports.combinedUpload  = combinedUpload;
+module.exports.drainEchoUpload = drainEchoUpload; // ← NEW

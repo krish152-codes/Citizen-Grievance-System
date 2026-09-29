@@ -347,6 +347,23 @@ export default function CitizenDashboardPage() {
               <p className="font-bold text-base mb-1 text-slate-900">Track a Complaint</p>
               <p className="text-slate-500 text-sm">Enter your ticket ID to check status</p>
             </button>
+            {/* ← NEW: Smart Drain Monitoring + Drain Echo */}
+            <button
+              onClick={() => navigate('/drain-monitoring')}
+              className="bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left transition-colors"
+            >
+              <div className="text-2xl mb-2">🌊</div>
+              <p className="font-bold text-base mb-1 text-slate-900">Drain Monitoring</p>
+              <p className="text-slate-500 text-sm">Live water-level status near you</p>
+            </button>
+            <button
+              onClick={() => navigate('/drain-echo')}
+              className="bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl p-5 text-left transition-colors"
+            >
+              <div className="text-2xl mb-2">🎙️</div>
+              <p className="font-bold text-base mb-1 text-slate-900">Run Drain Echo</p>
+              <p className="text-slate-500 text-sm">Acoustic check for a suspected blockage</p>
+            </button>
           </div>
         </section>
 

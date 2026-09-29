@@ -44,9 +44,12 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
   const isCitizen = user?.role === 'citizen';
+  // Broader than isAdmin — used for the Smart Drain Monitoring module, where
+  // department_lead users also need municipal-operations access.
+  const isMunicipal = isAdmin || user?.role === 'department_lead';
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, isAdmin, isCitizen }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, isAdmin, isCitizen, isMunicipal }}>
       {children}
     </AuthContext.Provider>
   );

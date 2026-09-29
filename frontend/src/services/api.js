@@ -77,4 +77,36 @@ export const departmentsAPI = {
   sendComplaint:   (issueId, data) => api.post(`/departments/send-complaint/${issueId}`, data),
 };
 
+// ── Smart Drain Monitoring + Drain Echo ──────────────────
+export const drainsAPI = {
+  getAll:            (params)   => api.get('/drains', { params }),
+  getById:           (id)       => api.get(`/drains/${id}`),
+  getReadings:       (id, params) => api.get(`/drains/${id}/readings`, { params }),
+  getTrends:         (id, range)  => api.get(`/drains/${id}/trends`, { params: { range } }),
+  create:            (data)     => api.post('/drains', data),
+  updateThresholds:  (id, data) => api.patch(`/drains/${id}/thresholds`, data),
+  updateCalibration: (id, data) => api.patch(`/drains/${id}/calibration`, data),
+};
+
+export const alertsAPI = {
+  getAll:       (params)   => api.get('/alerts', { params }),
+  getById:      (id)       => api.get(`/alerts/${id}`),
+  acknowledge:  (id)       => api.post(`/alerts/${id}/acknowledge`),
+  assign:       (id, data) => api.patch(`/alerts/${id}/assign`, data),
+  resolve:      (id, data) => api.patch(`/alerts/${id}/resolve`, data),
+};
+
+export const drainIncidentsAPI = {
+  getAll:  (params)   => api.get('/incidents', { params }),
+  getById: (id)       => api.get(`/incidents/${id}`),
+  create:  (data)     => api.post('/incidents', data),
+  update:  (id, data) => api.patch(`/incidents/${id}`, data),
+};
+
+export const drainEchoAPI = {
+  analyze:     (formData) => api.post('/drain-echo/analyze', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getHistory:  (params)   => api.get('/drain-echo/history', { params }),
+  getById:     (id)       => api.get(`/drain-echo/${id}`),
+};
+
 export default api;
