@@ -170,7 +170,7 @@ export default function ChatWidget() {
         className="fixed z-[1000] bottom-5 right-5 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-xl px-5 py-3.5 flex items-center gap-2 font-bold text-sm transition-all hover:scale-105"
         style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))' }}
       >
-        <span className="text-lg">🤖</span>
+        <span className="text-lg"></span>
         <span className="hidden sm:inline">Report a Problem</span>
       </button>
     );

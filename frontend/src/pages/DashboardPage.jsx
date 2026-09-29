@@ -80,7 +80,7 @@ export default function DashboardPage() {
 
         {!loading && !error && !ov && (
           <div className="card p-12 text-center">
-            <span className="text-5xl mb-4 block">📊</span>
+            <span className="text-5xl mb-4 block"></span>
             <h3 className="font-display font-bold text-xl text-slate-900 mb-2">No Data Yet</h3>
             <p className="text-slate-500 mb-6">Your dashboard will populate once citizens start submitting reports.</p>
             <button onClick={() => navigate('/report')} className="btn-primary">Submit First Report</button>
@@ -153,10 +153,10 @@ export default function DashboardPage() {
 
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'View All Issues', icon: '📋', path: '/issues' },
-            { label: 'Map View', icon: '🗺️', path: '/map' },
-            { label: 'Analytics', icon: '📊', path: '/analytics' },
-            { label: 'Manage Users', icon: '👥', path: '/users' },
+            { label: 'View All Issues', icon: '', path: '/issues' },
+            { label: 'Map View', icon: '', path: '/map' },
+            { label: 'Analytics', icon: '', path: '/analytics' },
+            { label: 'Manage Users', icon: '', path: '/users' },
           ].map(({ label, icon, path }) => (
             <button key={path} onClick={() => navigate(path)} className="card p-4 text-center hover:shadow-md transition-all hover:border-brand-200 group">
               <span className="text-2xl mb-2 block">{icon}</span>

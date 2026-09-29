@@ -224,10 +224,10 @@ export default function CitizenDashboardPage() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard icon="📊" value={mine?.total}    label="Total Complaints"   color="bg-slate-100 text-slate-600" loading={loading} />
-            <StatCard icon="⏳" value={mine?.pending}  label="Pending Review"     color="bg-yellow-50 text-yellow-600" loading={loading} />
-            <StatCard icon="⚙️" value={mine?.active}   label="In Progress"        color="bg-blue-50 text-blue-600"    loading={loading} />
-            <StatCard icon="✅" value={mine?.resolved} label="Resolved"           color="bg-green-50 text-green-600"  loading={loading} />
+            <StatCard icon="" value={mine?.total}    label="Total Complaints"   color="bg-slate-100 text-slate-600" loading={loading} />
+            <StatCard icon="" value={mine?.pending}  label="Pending Review"     color="bg-yellow-50 text-yellow-600" loading={loading} />
+            <StatCard icon="" value={mine?.active}   label="In Progress"        color="bg-blue-50 text-blue-600"    loading={loading} />
+            <StatCard icon="" value={mine?.resolved} label="Resolved"           color="bg-green-50 text-green-600"  loading={loading} />
           </div>
         </section>
 

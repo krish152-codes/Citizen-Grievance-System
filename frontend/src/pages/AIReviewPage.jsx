@@ -5,7 +5,7 @@ import { aiReviewAPI } from '../services/api';
 import { timeAgo } from '../utils/helpers';
 
 const CATEGORY_OPTIONS = ['waste', 'water', 'electricity', 'roads', 'infrastructure', 'public_safety', 'parks', 'traffic', 'other'];
-const SOURCE_LABELS = { WEB: '🌐 Web', WHATSAPP: '💬 WhatsApp', AI: '🤖 AI Chat', MANUAL: '✍️ Manual' };
+const SOURCE_LABELS = { WEB: ' Web', WHATSAPP: ' WhatsApp', AI: ' AI Chat', MANUAL: 'Manual' };
 
 function ReviewRow({ issue, onSaved }) {
   const [category, setCategory] = useState(issue.category);

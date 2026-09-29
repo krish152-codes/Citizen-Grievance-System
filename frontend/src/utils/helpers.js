@@ -77,11 +77,11 @@ export const getInitials = (name) => {
 };
 
 export const DEPARTMENTS = [
-  { id: 'infrastructure', label: 'Infrastructure', icon: '🔧', staff: 14, load: 'High Load' },
-  { id: 'sanitation', label: 'Sanitation & Waste', icon: '🗑️', staff: 8, load: 'Optimal' },
-  { id: 'public_safety', label: 'Public Safety', icon: '🛡️', staff: 32, load: 'Moderate' },
-  { id: 'parks', label: 'Parks & Recreation', icon: '🌲', staff: 12, load: 'Low Load' },
-  { id: 'traffic', label: 'Traffic Management', icon: '🚦', staff: 21, load: 'Moderate' },
+  { id: 'infrastructure', label: 'Infrastructure', icon: '', staff: 14, load: 'High Load' },
+  { id: 'sanitation', label: 'Sanitation & Waste', icon: '', staff: 8, load: 'Optimal' },
+  { id: 'public_safety', label: 'Public Safety', icon: '', staff: 32, load: 'Moderate' },
+  { id: 'parks', label: 'Parks & Recreation', icon: '', staff: 12, load: 'Low Load' },
+  { id: 'traffic', label: 'Traffic Management', icon: '', staff: 21, load: 'Moderate' },
 ];
 
 // ─── Smart Drain Monitoring + Drain Echo ────────────────

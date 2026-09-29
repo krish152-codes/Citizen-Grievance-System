@@ -69,7 +69,7 @@ export default function AnalyticsPage() {
 
         {!loading && !error && !hasData && (
           <div className="card p-16 text-center">
-            <span className="text-5xl mb-4 block">📊</span>
+            <span className="text-5xl mb-4 block"></span>
             <h3 className="font-display font-bold text-xl text-slate-900 mb-2">No Analytics Data Yet</h3>
             <p className="text-slate-500 text-sm max-w-sm mx-auto">Analytics will appear once users start submitting issue reports.</p>
           </div>

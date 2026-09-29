@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import PublicNav from '../components/layout/PublicNav';
 
 const FEATURES = [
-  { icon: '🗑️', title: 'Waste Detection', desc: 'AI identifies and categorizes sanitation issues from citizen uploads automatically.', dark: false },
-  { icon: '🤖', title: 'Smart Classification', desc: 'Instant routing to the correct department based on semantic analysis of reports.', dark: false },
-  { icon: '📊', title: 'Live Dashboard', desc: 'Command center for city managers with real-time issue tracking and trend analysis.', dark: true },
+  { icon: '', title: 'Waste Detection', desc: 'AI identifies and categorizes sanitation issues from citizen uploads automatically.', dark: false },
+  { icon: '', title: 'Smart Classification', desc: 'Instant routing to the correct department based on semantic analysis of reports.', dark: false },
+  { icon: '', title: 'Live Dashboard', desc: 'Command center for city managers with real-time issue tracking and trend analysis.', dark: true },
 ];
 
 export default function HomePage() {

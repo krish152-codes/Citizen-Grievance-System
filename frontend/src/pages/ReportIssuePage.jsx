@@ -243,7 +243,7 @@ export default function ReportIssuePage() {
             {/* AI Generated Summary */}
             {submitted.aiGeneratedSummary && (
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left mb-4">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">🤖 AI Generated Summary</p>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1"> AI Generated Summary</p>
                 <p className="text-sm text-slate-800">{submitted.aiGeneratedSummary}</p>
               </div>
             )}
@@ -293,7 +293,7 @@ export default function ReportIssuePage() {
               </p>
               <div className="flex items-center gap-2 mb-8">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-50 border border-brand-200 rounded-full text-xs font-semibold text-brand-700">
-                  <span>🤖</span> AI Multimodal Analysis
+                  <span></span> AI Multimodal Analysis
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 rounded-full text-xs font-semibold text-red-700">
                   📸 Photo Required
@@ -566,7 +566,7 @@ export default function ReportIssuePage() {
                     </span>
                   ) : (
                     <span className="flex items-center gap-2 justify-center">
-                      🤖 Submit Report with AI Analysis →
+                       Submit Report with AI Analysis →
                     </span>
                   )}
                 </button>
@@ -582,15 +582,15 @@ export default function ReportIssuePage() {
           <div className="space-y-4">
             {/* AI Features card */}
             <div className="card p-5 bg-brand-50 border-brand-100">
-              <p className="text-xs font-bold text-brand-700 uppercase tracking-wider mb-3">🤖 AI Features Active</p>
+              <p className="text-xs font-bold text-brand-700 uppercase tracking-wider mb-3"> AI Features Active</p>
               <div className="space-y-2">
                 {[
-                  { icon: '📸', text: 'Image visual analysis' },
-                  { icon: '🎤', text: 'Voice transcription & NLP' },
-                  { icon: '🧠', text: 'Multimodal AI classification' },
-                  { icon: '🚨', text: 'Emergency auto-detection' },
-                  { icon: '📋', text: 'Auto-generated complaint summary' },
-                  { icon: '🏢', text: 'Smart department routing' },
+                  { icon: '', text: 'Image visual analysis' },
+                  { icon: '', text: 'Voice transcription & NLP' },
+                  { icon: '', text: 'Multimodal AI classification' },
+                  { icon: '', text: 'Emergency auto-detection' },
+                  { icon: '', text: 'Auto-generated complaint summary' },
+                  { icon: '', text: 'Smart department routing' },
                 ].map(({ icon, text }) => (
                   <div key={text} className="flex gap-2 items-center text-xs text-brand-800">
                     <span>{icon}</span><span>{text}</span>
