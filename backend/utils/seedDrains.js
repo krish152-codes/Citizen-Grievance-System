@@ -42,7 +42,7 @@ async function seedDrainCollections() {
   for (const name of ['drains', 'sensorreadings', 'alerts', 'drainechodiagnostics', 'drainincidents']) {
     if (existing.includes(name)) await db.dropCollection(name);
   }
-  console.log('🗑️  Cleared existing drain-module data (users/issues untouched)');
+  console.log('  Cleared existing drain-module data (users/issues untouched)');
 }
 
 async function seedOneDrain(def) {

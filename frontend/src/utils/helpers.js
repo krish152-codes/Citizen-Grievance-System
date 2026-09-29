@@ -41,15 +41,15 @@ export const STATUS_CONFIG = {
 };
 
 export const CATEGORY_CONFIG = {
-  waste:         { label: 'Waste',           icon: '🗑️', color: 'text-orange-600' },
-  water:         { label: 'Water',           icon: '💧', color: 'text-blue-600' },
-  electricity:   { label: 'Electricity',     icon: '⚡', color: 'text-yellow-600' },
-  roads:         { label: 'Roads',           icon: '🛣️', color: 'text-slate-600' },
-  infrastructure:{ label: 'Infrastructure',  icon: '🏗️', color: 'text-indigo-600' },
-  public_safety: { label: 'Public Safety',   icon: '🛡️', color: 'text-red-600' },
-  parks:         { label: 'Parks',           icon: '🌳', color: 'text-green-600' },
-  traffic:       { label: 'Traffic',         icon: '🚦', color: 'text-purple-600' },
-  other:         { label: 'Other',           icon: '📋', color: 'text-slate-500' },
+  waste:         { label: 'Waste',           icon: '', color: 'text-orange-600' },
+  water:         { label: 'Water',           icon: '', color: 'text-blue-600' },
+  electricity:   { label: 'Electricity',     icon: '', color: 'text-yellow-600' },
+  roads:         { label: 'Roads',           icon: '', color: 'text-slate-600' },
+  infrastructure:{ label: 'Infrastructure',  icon: '', color: 'text-indigo-600' },
+  public_safety: { label: 'Public Safety',   icon: '', color: 'text-red-600' },
+  parks:         { label: 'Parks',           icon: '', color: 'text-green-600' },
+  traffic:       { label: 'Traffic',         icon: '', color: 'text-purple-600' },
+  other:         { label: 'Other',           icon: '', color: 'text-slate-500' },
 };
 
 export const getPriorityBadge = (priority) => {

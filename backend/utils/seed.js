@@ -20,7 +20,7 @@ const seed = async () => {
     const existing = (await db.listCollections().toArray()).map(c => c.name);
     if (existing.includes('users'))  await db.dropCollection('users');
     if (existing.includes('issues')) await db.dropCollection('issues');
-    console.log('🗑️  Cleared existing data');
+    console.log('  Cleared existing data');
 
     // ── Seed users via Mongoose (handles password hashing) ──
     const createdUsers = await User.create(USERS);

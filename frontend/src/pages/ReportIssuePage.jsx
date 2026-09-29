@@ -6,14 +6,14 @@ import VoiceRecorder from '../components/voice/VoiceRecorder';
 import { issuesAPI, aiAPI, analyticsAPI } from '../services/api';
 
 const CATEGORIES = [
-  { id: 'waste',          label: 'Sanitation',    icon: '🗑️' },
-  { id: 'water',          label: 'Water',          icon: '💧' },
-  { id: 'electricity',    label: 'Electricity',    icon: '⚡' },
-  { id: 'roads',          label: 'Roads',          icon: '🛣️' },
-  { id: 'infrastructure', label: 'Infrastructure', icon: '🏗️' },
-  { id: 'public_safety',  label: 'Safety',         icon: '🛡️' },
-  { id: 'parks',          label: 'Parks',          icon: '🌳' },
-  { id: 'traffic',        label: 'Traffic',        icon: '🚦' },
+  { id: 'waste',          label: 'Sanitation',    icon: '' },
+  { id: 'water',          label: 'Water',          icon: '' },
+  { id: 'electricity',    label: 'Electricity',    icon: '' },
+  { id: 'roads',          label: 'Roads',          icon: '' },
+  { id: 'infrastructure', label: 'Infrastructure', icon: '' },
+  { id: 'public_safety',  label: 'Safety',         icon: '' },
+  { id: 'parks',          label: 'Parks',          icon: '' },
+  { id: 'traffic',        label: 'Traffic',        icon: '' },
 ];
 
 const PRIORITY_BADGE = {

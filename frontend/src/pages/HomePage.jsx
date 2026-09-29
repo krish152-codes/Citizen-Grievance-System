@@ -38,9 +38,9 @@ export default function HomePage() {
             <div className="space-y-2">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Capabilities</p>
               {[
-                { icon: '🗑️', label: 'Waste Detection', color: 'bg-orange-50 border-orange-100' },
-                { icon: '⚡', label: 'Instant Classification', color: 'bg-blue-50 border-blue-100' },
-                { icon: '📍', label: 'Location Tracking', color: 'bg-green-50 border-green-100' },
+                { icon: '', label: 'Waste Detection', color: 'bg-orange-50 border-orange-100' },
+                { icon: '', label: 'Instant Classification', color: 'bg-blue-50 border-blue-100' },
+                { icon: '', label: 'Location Tracking', color: 'bg-green-50 border-green-100' },
               ].map(({ icon, label, color }) => (
                 <div key={label} className={`flex items-center gap-2 ${color} border rounded-xl px-3 py-2 text-sm`}>
                   <span>{icon}</span><span className="text-slate-700 font-medium">{label}</span>

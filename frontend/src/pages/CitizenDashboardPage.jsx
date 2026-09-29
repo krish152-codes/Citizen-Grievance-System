@@ -11,16 +11,16 @@ const STATUS_CONFIG = {
 };
 
 const DEPT_ICONS = {
-  'Public Works':       '🏗️',
-  'Sanitation & Waste': '🗑️',
-  'Infrastructure':     '🔧',
-  'Public Safety':      '🚔',
-  'Parks & Recreation': '🌳',
-  'Traffic Management': '🚦',
-  'City Planning':      '🏙️',
-  'Central Governance': '🏛️',
-  'Municipal Corporation': '🏢',
-  'Unassigned':         '📋',
+  'Public Works':       '',
+  'Sanitation & Waste': '',
+  'Infrastructure':     '',
+  'Public Safety':      '',
+  'Parks & Recreation': '',
+  'Traffic Management': '',
+  'City Planning':      '',
+  'Central Governance': '',
+  'Municipal Corporation': '',
+  'Unassigned':         '',
 };
 
 const HealthRing = ({ score }) => {
