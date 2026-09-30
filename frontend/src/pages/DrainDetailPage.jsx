@@ -5,6 +5,7 @@ import StatusBadge from '../components/drain/StatusBadge';
 import { WaterLevelCard, AtmosphereCard, DeviceHealthCard } from '../components/drain/SensorCards';
 import TrendChart from '../components/drain/TrendChart';
 import ArduinoConnect from '../components/drain/ArduinoConnect';
+import LiveReadingsChart from '../components/drain/LiveReadingsChart';
 import { drainsAPI, drainIncidentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/helpers';
@@ -189,6 +190,9 @@ export default function DrainDetailPage() {
           <AtmosphereCard latest={drain.latest} />
           <DeviceHealthCard drain={drain} />
         </div>
+
+        {/* Detailed live graphs from raw readings */}
+        <LiveReadingsChart drain={drain} />
 
         {/* Trends */}
         <div className="card p-5 mb-8">

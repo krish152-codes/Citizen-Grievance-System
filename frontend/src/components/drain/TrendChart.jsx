@@ -38,7 +38,7 @@ export default function TrendChart({ data, series, loading, height = 220, unit =
             name={s.name}
             stroke={s.color}
             strokeWidth={2}
-            dot={false}
+            dot={data.length < 15 ? { r: 3 } : false}
             activeDot={{ r: 4 }}
             connectNulls
           />

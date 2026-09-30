@@ -17,6 +17,7 @@ import UserManagementPage   from './pages/UserManagementPage';
 import AIAnalysisPage       from './pages/AIAnalysisPage';
 import DepartmentPage       from './pages/DepartmentPage'; // ← NEW
 import NotFoundPage         from './pages/NotFoundPage';
+import WhatsAppChatWidget   from './components/chatbot/WhatsAppChatWidget';
 
 // Smart Drain Monitoring + Drain Echo
 import DrainsOverviewPage      from './pages/DrainsOverviewPage';
@@ -113,6 +114,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
+        <WhatsAppChatWidget />
       </AuthProvider>
     </BrowserRouter>
   );
