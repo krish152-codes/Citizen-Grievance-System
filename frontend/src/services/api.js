@@ -88,6 +88,7 @@ export const drainsAPI = {
   create:            (data)     => api.post('/drains', data),
   updateThresholds:  (id, data) => api.patch(`/drains/${id}/thresholds`, data),
   updateCalibration: (id, data) => api.patch(`/drains/${id}/calibration`, data),
+  ingestReading:     (id, data) => api.post(`/drains/${id}/readings`, data),
 };
 
 export const alertsAPI = {

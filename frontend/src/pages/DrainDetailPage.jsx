@@ -4,6 +4,7 @@ import AdminLayout from '../components/layout/AdminLayout';
 import StatusBadge from '../components/drain/StatusBadge';
 import { WaterLevelCard, AtmosphereCard, DeviceHealthCard } from '../components/drain/SensorCards';
 import TrendChart from '../components/drain/TrendChart';
+import ArduinoConnect from '../components/drain/ArduinoConnect';
 import { drainsAPI, drainIncidentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/helpers';
@@ -105,6 +106,11 @@ export default function DrainDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Quiet refresh (no skeleton flash) used after each live Arduino reading
+  const refreshDrain = useCallback(() => {
+    drainsAPI.getById(id).then(({ data }) => setDrain(data.drain)).catch(() => {});
+  }, [id]);
+
   useEffect(() => { loadDrain(); }, [loadDrain]);
 
   useEffect(() => {
@@ -174,6 +180,8 @@ export default function DrainDetailPage() {
             ⚠️ Device offline. Last update {timeAgo(drain.latest.timestamp)} — readings below may be stale.
           </div>
         )}
+
+        {isMunicipal && <ArduinoConnect drain={drain} onPosted={refreshDrain} />}
 
         {/* Current readings */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
