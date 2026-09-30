@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { authAPI } from '../services/api';
+import { authAPI, SERVER_URL } from '../services/api';
 
 const TABS = ['login', 'register', 'otp'];
 
@@ -23,7 +23,7 @@ export default function LoginPage() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/health');
+        const res = await fetch(`${SERVER_URL}/api/health`);
         const data = await res.json();
         setBackendOk(data.success === true);
       } catch {

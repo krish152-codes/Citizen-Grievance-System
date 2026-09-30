@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
-import { issuesAPI, aiAPI } from '../services/api';
+import { issuesAPI, aiAPI, SERVER_URL } from '../services/api';
 import { formatDateTime, getPriorityBadge, getStatusBadge, getCategoryConfig, DEPARTMENTS, getInitials } from '../utils/helpers';
 
 // ── Status Update Modal ──────────────────────────────
@@ -390,9 +390,9 @@ export default function IssueDetailPage() {
                 </p>
                 <div className="flex gap-3 flex-wrap">
                   {issue.imageUrls.map((url, i) => (
-                    <a key={i} href={`http://localhost:5000${url}`} target="_blank" rel="noreferrer">
+                    <a key={i} href={`${SERVER_URL}${url}`} target="_blank" rel="noreferrer">
                       <img
-                        src={`http://localhost:5000${url}`}
+                        src={`${SERVER_URL}${url}`}
                         alt={`Evidence ${i + 1}`}
                         className="w-36 h-28 object-cover rounded-xl border border-slate-200 hover:opacity-90 cursor-pointer transition-opacity"
                       />

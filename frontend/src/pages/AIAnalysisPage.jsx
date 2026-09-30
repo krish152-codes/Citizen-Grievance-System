@@ -94,7 +94,7 @@ export default function AIAnalysisPage() {
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         role: 'assistant',
-        content: 'I could not process your request. Please make sure the backend server is running at http://localhost:5000.',
+        content: 'I could not process your request. Please make sure the backend server is running.',
         timestamp: new Date(),
       }]);
     } finally {
