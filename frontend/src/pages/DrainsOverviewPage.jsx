@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
 import StatusBadge from '../components/drain/StatusBadge';
+import AddDrainModal from '../components/drain/AddDrainModal';
+import { useAuth } from '../context/AuthContext';
 import { drainsAPI, alertsAPI, drainIncidentsAPI } from '../services/api';
 import { timeAgo } from '../utils/helpers';
 
@@ -33,6 +35,8 @@ const StatCard = ({ icon, value, label, tone = 'slate' }) => {
 
 export default function DrainsOverviewPage() {
   const navigate = useNavigate();
+  const { isMunicipal } = useAuth();
+  const [showAdd, setShowAdd] = useState(false);
   const [drains, setDrains] = useState([]);
   const [summary, setSummary] = useState(null);
   const [alertSummary, setAlertSummary] = useState(null);
@@ -71,6 +75,7 @@ export default function DrainsOverviewPage() {
             <p className="text-slate-500 text-sm">Real-time drain status, alerts, and municipal response overview.</p>
           </div>
           <div className="flex items-center gap-2">
+            {isMunicipal && <button onClick={() => setShowAdd(true)} className="btn-primary text-sm">➕ Add Drain</button>}
             <button onClick={() => navigate('/drains/map')} className="btn-secondary text-sm">🗺️ Map View</button>
             <button onClick={() => navigate('/alerts')} className="btn-secondary text-sm">🔔 Alerts</button>
             <button onClick={() => navigate('/drain-echo')} className="btn-primary text-sm">🎙️ Run Drain Echo</button>
@@ -165,6 +170,12 @@ export default function DrainsOverviewPage() {
           )}
         </div>
       </div>
+      {showAdd && (
+        <AddDrainModal
+          onClose={() => setShowAdd(false)}
+          onCreated={(drain) => { setShowAdd(false); navigate(`/drains/${drain._id}`); }}
+        />
+      )}
     </AdminLayout>
   );
 }
