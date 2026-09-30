@@ -40,6 +40,7 @@ async function findOrCreateConversation(waId, displayName) {
 }
 
 async function processIncomingMessage(waMessage, waId, displayName) {
+  console.log(`💬 WhatsApp message received: type=${waMessage.type} id=${waMessage.id}`);
   // Idempotency (spec §79) — WhatsApp can retry webhook delivery.
   const already = await Message.findOne({ whatsappMessageId: waMessage.id });
   if (already) return; // silently skip — already processed
@@ -86,8 +87,9 @@ async function processIncomingMessage(waMessage, waId, displayName) {
   if (whatsapp.isConfigured()) {
     try {
       await whatsapp.sendTextMessage(waId, result.replyText);
+      console.log('✅ WhatsApp reply sent');
     } catch (err) {
-      console.error('WhatsApp send failed:', err.message);
+      console.error('❌ WhatsApp send failed:', err.message);
     }
   } else {
     console.log(`[WhatsApp not configured — reply not sent] → ${waId}: ${result.replyText}`);
@@ -99,7 +101,9 @@ const receiveWebhook = async (req, res) => {
   // req.body is a raw Buffer here (see routes/whatsappWebhook.js) so we can
   // verify the signature against the exact bytes Meta signed (spec §78).
   const signature = req.headers['x-hub-signature-256'];
+  console.log(`📩 WhatsApp webhook hit (signature header: ${signature ? 'present' : 'MISSING'}, body bytes: ${req.body?.length ?? 0})`);
   if (!whatsapp.verifySignature(req.body, signature)) {
+    console.error('❌ WhatsApp webhook rejected (401): signature mismatch. Check WHATSAPP_APP_SECRET = App settings → Basic → App secret of THIS app.');
     return res.sendStatus(401);
   }
 
@@ -130,4 +134,22 @@ const receiveWebhook = async (req, res) => {
   }
 };
 
-module.exports = { verifyWebhook, receiveWebhook };
+// ── GET /api/webhooks/whatsapp/debug — shows which settings are present (no secrets revealed) ──
+const debugStatus = (req, res) => {
+  const t = process.env.WHATSAPP_ACCESS_TOKEN || '';
+  res.json({
+    configuredToSend: whatsapp.isConfigured(),
+    hasPhoneNumberId: !!process.env.WHATSAPP_PHONE_NUMBER_ID,
+    phoneNumberIdLength: (process.env.WHATSAPP_PHONE_NUMBER_ID || '').length,
+    hasAccessToken: !!t,
+    accessTokenLength: t.length,
+    accessTokenStartsWithEAA: t.startsWith('EAA'),
+    accessTokenHasWhitespaceOrQuotes: /[\s"']/.test(t),
+    hasAppSecret: !!process.env.WHATSAPP_APP_SECRET,
+    appSecretLength: (process.env.WHATSAPP_APP_SECRET || '').length,
+    hasVerifyToken: !!process.env.WHATSAPP_VERIFY_TOKEN,
+    graphBase: whatsapp.GRAPH_BASE,
+  });
+};
+
+module.exports = { verifyWebhook, receiveWebhook, debugStatus };

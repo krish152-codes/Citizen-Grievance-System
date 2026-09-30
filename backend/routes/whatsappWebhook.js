@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { verifyWebhook, receiveWebhook } = require('../controllers/whatsappWebhookController');
+const { verifyWebhook, receiveWebhook, debugStatus } = require('../controllers/whatsappWebhookController');
+
+// GET /debug: shows which WhatsApp settings are configured (no secret values).
+router.get('/debug', debugStatus);
 
 // GET: Meta's one-time subscription verification challenge.
 router.get('/', verifyWebhook);
