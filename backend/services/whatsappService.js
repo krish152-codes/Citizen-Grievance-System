@@ -13,7 +13,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const GRAPH_API_VERSION = 'v20.0';
+const GRAPH_API_VERSION = process.env.WHATSAPP_GRAPH_VERSION || 'v25.0';
 const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 
 function isConfigured() {

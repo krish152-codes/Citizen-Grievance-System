@@ -48,6 +48,10 @@ app.use(cors({
 }));
 app.options('*', cors());
 
+// ── WhatsApp webhook: MUST be mounted BEFORE express.json() ──
+// It uses express.raw() so Meta's HMAC signature can be verified on the exact bytes.
+app.use('/api/webhooks/whatsapp', require('./routes/whatsappWebhook'));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -61,12 +65,22 @@ app.use('/api/ai',          aiRoutes);
 app.use('/api/analytics',   analyticsRoutes);
 app.use('/api/users',       userRoutes);
 app.use('/api/departments', departmentRoutes); // ← NEW
+app.use('/api/chatbot',     require('./routes/chatbot'));
 
 // ── Smart Drain Monitoring + Drain Echo ──
 app.use('/api/drains',    drainRoutes);
 app.use('/api/alerts',    alertRoutes);
 app.use('/api/incidents', drainIncidentRoutes);
 app.use('/api/drain-echo', drainEchoRoutes);
+
+// Optional live regional drain feed (real rainfall from Open-Meteo, no API key).
+if (process.env.REGIONAL_DRAIN_LIVE === 'true') {
+  try {
+    require('./services/regionalDrainFeed').startLive(Number(process.env.REGIONAL_FEED_MINUTES) || 10);
+  } catch (err) {
+    console.warn('⚠️  Regional drain feed failed to start:', err.message);
+  }
+}
 
 // Optional dev-only sensor simulator — only starts if explicitly enabled,
 // so production/default behavior is completely unaffected.

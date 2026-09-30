@@ -12,6 +12,7 @@
     "seed": "node utils/seed.js",
     "seed:drains": "node utils/seedDrains.js",
     "feed:drains": "node utils/feedDrains.js",
+    "feed:regional": "node utils/feedRegionalDrains.js",
     "create-admin": "node utils/createAdmin.js"
   },
   "dependencies": {
