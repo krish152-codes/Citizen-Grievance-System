@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { drainsAPI } from '../../services/api';
+import CoordinatePicker from './CoordinatePicker';
 
 const EMPTY = {
   deviceId: '', name: '', ward: '', zone: '',
@@ -23,8 +24,12 @@ export default function AddDrainModal({ onClose, onCreated }) {
     }
     const lat = form.lat === '' ? undefined : parseFloat(form.lat);
     const lng = form.lng === '' ? undefined : parseFloat(form.lng);
-    if ((form.lat !== '' && Number.isNaN(lat)) || (form.lng !== '' && Number.isNaN(lng))) {
-      setError('Latitude and longitude must be numbers.');
+    if ((form.lat === '') !== (form.lng === '')) {
+      setError('Enter both latitude and longitude, or leave both empty.');
+      return;
+    }
+    if (lat !== undefined && (Number.isNaN(lat) || lat < -90 || lat > 90 || Number.isNaN(lng) || lng < -180 || lng > 180)) {
+      setError('Latitude must be between -90 and 90, and longitude between -180 and 180.');
       return;
     }
 
@@ -52,7 +57,7 @@ export default function AddDrainModal({ onClose, onCreated }) {
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="card p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white"
+        className="card p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto bg-white"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-lg font-bold text-slate-900">Add New Drain</h2>
@@ -80,14 +85,12 @@ export default function AddDrainModal({ onClose, onCreated }) {
             <label className="label text-[11px]">Address / Landmark</label>
             <input className="input-field text-sm py-1.5" value={form.address} onChange={set('address')} />
           </div>
-          <div>
-            <label className="label text-[11px]">Latitude</label>
-            <input type="number" step="any" className="input-field text-sm py-1.5" placeholder="22.7196" value={form.lat} onChange={set('lat')} />
-          </div>
-          <div>
-            <label className="label text-[11px]">Longitude</label>
-            <input type="number" step="any" className="input-field text-sm py-1.5" placeholder="75.8577" value={form.lng} onChange={set('lng')} />
-          </div>
+          <CoordinatePicker
+            lat={form.lat}
+            lng={form.lng}
+            onChange={(lat, lng) => setForm((f) => ({ ...f, lat, lng }))}
+            onAddressFound={(addr) => setForm((f) => (f.address ? f : { ...f, address: addr }))}
+          />
           <div>
             <label className="label text-[11px]">Full Drain Depth (cm)</label>
             <input type="number" step="any" className="input-field text-sm py-1.5" placeholder="150" value={form.depthCm} onChange={set('depthCm')} />
