@@ -1,4 +1,5 @@
-const { classifyIssue, generateApplicationLetter, detectGarbage, sentimentAnalysis } = require('../services/aiService');
+const { classifyIssue, generateApplicationLetter, detectGarbage, sentimentAnalysis, transcribeVoice } = require('../services/aiService');
+const fs = require('fs');
 const Issue = require('../models/Issue');
 
 // POST /api/ai/classify
@@ -73,4 +74,30 @@ const generateLetter = async (req, res) => {
   }
 };
 
-module.exports = { classify, previewClassify, detect, sentiment, generateLetter };
+// POST /api/ai/transcribe  (multipart: voice, optional lang)
+// Server-side speech-to-text fallback for browsers without the Web Speech API
+// (Firefox, some in-app browsers) or for languages the browser can't recognise.
+const transcribe = async (req, res) => {
+  const file = req.file;
+  try {
+    if (!file) return res.status(400).json({ success: false, message: 'No audio file received' });
+    const lang = /^[a-z]{2}$/.test(req.body.lang || '') ? req.body.lang : '';
+    const result = await transcribeVoice(file.path, lang);
+    if (result.method === 'unavailable') {
+      return res.status(501).json({
+        success: false, method: 'unavailable',
+        message: 'Server transcription is not configured (OPENAI_API_KEY missing).',
+      });
+    }
+    if (result.method === 'failed') {
+      return res.status(502).json({ success: false, method: 'failed', message: result.error || 'Transcription failed' });
+    }
+    res.json({ success: true, transcript: result.transcript, method: result.method });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    if (file?.path) fs.unlink(file.path, () => {}); // transcription-only upload; don't keep it
+  }
+};
+
+module.exports = { classify, previewClassify, detect, sentiment, generateLetter, transcribe };

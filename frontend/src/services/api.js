@@ -56,7 +56,23 @@ export const aiAPI = {
   classify:        (text)    => api.post('/ai/classify',         { text }),
   previewClassify: (text)    => api.post('/ai/preview-classify', { text }),
   sentiment:       (text)    => api.post('/ai/sentiment',        { text }),
+  // Server-side speech-to-text fallback (Whisper). lang = ISO-639-1 hint or ''.
+  transcribe:      (blob, lang = '') => {
+    const fd = new FormData();
+    const ext = blob.type?.includes('mp4') ? 'm4a' : blob.type?.includes('ogg') ? 'ogg' : blob.type?.includes('wav') ? 'wav' : blob.type?.includes('mpeg') ? 'mp3' : 'webm';
+    fd.append('voice', blob instanceof File ? blob : new File([blob], `voice.${ext}`, { type: blob.type || 'audio/webm' }));
+    fd.append('lang', lang);
+    return api.post('/ai/transcribe', fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 });
+  },
   generateLetter:  (issueId) => api.post('/ai/generate-letter',  { issueId }),
+};
+
+// ── NEW: Community "I fixed this" showcase ───────────────
+export const communityAPI = {
+  getPosts:     (params)   => api.get('/community', { params }),
+  create:       (formData) => api.post('/community', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 }),
+  appreciate:   (id)       => api.post(`/community/${id}/appreciate`),
+  delete:       (id)       => api.delete(`/community/${id}`),
 };
 
 export const analyticsAPI = {

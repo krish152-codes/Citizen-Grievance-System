@@ -40,6 +40,7 @@ export default function ReportIssuePage() {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [voiceBlob, setVoiceBlob]       = useState(null);
   const [transcript, setTranscript]     = useState('');
+  const [voiceLang, setVoiceLang]       = useState(null);
 
   // UI state
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -151,6 +152,7 @@ export default function ReportIssuePage() {
       fd.append('category',   selectedCategory || aiPreview?.category || 'other');
       fd.append('isUrgent',   isUrgent);
       fd.append('transcript', transcript || '');
+      fd.append('voiceLang',  voiceLang?.whisper || '');
       fd.append('location',   JSON.stringify({
         address:  locationText || formData.location || '',
         lat:      gpsCoords?.lat || null,
@@ -387,11 +389,18 @@ export default function ReportIssuePage() {
                   <VoiceRecorder
                     onVoiceReady={(blob) => setVoiceBlob(blob)}
                     onTranscript={(text) => setTranscript(text)}
+                    onLanguageChange={(l) => setVoiceLang(l)}
                   />
                   {transcript && (
                     <div className="mt-2 p-3 bg-brand-50 border border-brand-200 rounded-xl">
-                      <p className="text-xs font-bold text-brand-700 mb-1">🎤 Transcript detected:</p>
-                      <p className="text-xs text-brand-800 italic">"{transcript}"</p>
+                      <p className="text-xs font-bold text-brand-700 mb-1">🎤 Transcript (you can correct it):</p>
+                      <textarea
+                        value={transcript}
+                        onChange={(e) => setTranscript(e.target.value)}
+                        rows={3}
+                        lang={voiceLang?.code}
+                        className="w-full text-sm text-brand-900 bg-white border border-brand-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-brand-300"
+                      />
                     </div>
                   )}
                 </div>

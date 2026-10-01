@@ -166,9 +166,15 @@ const analyzeTranscript = async (transcript) => {
 };
 
 // ── OpenAI Whisper transcription (optional) ───────────
-const transcribeVoice = async (audioFilePath) => {
+// `language` is an ISO-639-1 hint (hi, bn, ta ...). Pass '' / 'auto' to let
+// Whisper auto-detect (used for languages Whisper has no code for).
+const MIME_BY_EXT = {
+  '.webm': 'audio/webm', '.ogg': 'audio/ogg', '.mp3': 'audio/mpeg', '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4', '.mp4': 'audio/mp4', '.aac': 'audio/aac',
+};
+
+const transcribeVoice = async (audioFilePath, language = '') => {
   if (!process.env.OPENAI_API_KEY) {
-    // Fallback — return empty; frontend should use Web Speech API
     return { transcript: '', method: 'unavailable' };
   }
 
@@ -178,13 +184,14 @@ const transcribeVoice = async (audioFilePath) => {
     const https = require('https');
     const FormData = require('form-data');
 
+    const ext  = path.extname(audioFilePath).toLowerCase();
     const form = new FormData();
     form.append('file', fs.createReadStream(audioFilePath), {
       filename: path.basename(audioFilePath),
-      contentType: 'audio/webm',
+      contentType: MIME_BY_EXT[ext] || 'audio/webm',
     });
-    form.append('model', 'whisper-1');
-    form.append('language', 'en');
+    form.append('model', process.env.WHISPER_MODEL || 'whisper-1');
+    if (language && language !== 'auto') form.append('language', language);
 
     const result = await new Promise((resolve, reject) => {
       const req = https.request({
@@ -200,17 +207,22 @@ const transcribeVoice = async (audioFilePath) => {
         res.on('data', chunk => (data += chunk));
         res.on('end', () => {
           try { resolve(JSON.parse(data)); }
-          catch (e) { reject(e); }
+          catch (e) { reject(new Error(`Bad Whisper response (HTTP ${res.statusCode})`)); }
         });
       });
+      req.setTimeout(45000, () => req.destroy(new Error('Whisper request timed out')));
       req.on('error', reject);
       form.pipe(req);
     });
 
-    return { transcript: result.text || '', method: 'whisper' };
+    if (result.error) {
+      console.error('Whisper API error:', result.error.message || result.error);
+      return { transcript: '', method: 'failed', error: result.error.message || 'Whisper error' };
+    }
+    return { transcript: (result.text || '').trim(), method: 'whisper' };
   } catch (err) {
-    console.log('Whisper unavailable:', err.message);
-    return { transcript: '', method: 'failed' };
+    console.error('Whisper unavailable:', err.message);
+    return { transcript: '', method: 'failed', error: err.message };
   }
 };
 
