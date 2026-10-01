@@ -54,6 +54,31 @@ const issueSchema = new mongoose.Schema(
     extractedKeywords:  [{ type: String }],
     analysisTimestamp:  { type: Date },
 
+    // ── Resolution proof (photo of the completed work + verification) ──
+    resolution: {
+      proofImageUrls: [{ type: String }],
+      notes:          { type: String, default: '' },
+      submittedBy:    { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      submittedAt:    { type: Date },
+      gps: {
+        lat:       { type: Number },
+        lng:       { type: Number },
+        accuracyM: { type: Number },
+      },
+      distanceFromComplaintM: { type: Number },
+      locationCheck: { type: String, enum: ['MATCH', 'FAR', 'UNKNOWN'], default: 'UNKNOWN' },
+      verification: {
+        method:         { type: String, enum: ['AI', 'NONE'], default: 'NONE' },
+        verdict:        { type: String, enum: ['RESOLVED', 'NOT_RESOLVED', 'UNCLEAR', 'UNVERIFIED'], default: 'UNVERIFIED' },
+        confidence:     { type: Number, default: 0 },
+        sameLocation:   { type: String, default: 'UNSURE' },
+        reason:         { type: String, default: '' },
+        model:          { type: String, default: '' },
+        overridden:     { type: Boolean, default: false },
+        overrideReason: { type: String, default: '' },
+      },
+    },
+
     // ── Legacy AI fields (kept for compatibility) ──────
     aiCategory:          { type: String, default: '' },
     aiRecommendedAction: { type: String, default: '' },

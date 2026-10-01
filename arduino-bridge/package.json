@@ -1,0 +1,16 @@
+{
+  "name": "sheharsetu-arduino-bridge",
+  "version": "1.0.0",
+  "description": "Sends Arduino serial JSON readings to the SheharSetu backend in real time",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js",
+    "test": "node test.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@serialport/parser-readline": "^12.0.0",
+    "dotenv": "^16.3.1",
+    "serialport": "^12.0.0"
+  }
+}

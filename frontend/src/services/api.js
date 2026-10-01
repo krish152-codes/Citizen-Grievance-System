@@ -47,6 +47,7 @@ export const issuesAPI = {
   getById:      (id)        => api.get(`/issues/${id}`),
   track:        (ticketId)  => api.get(`/issues/track/${ticketId}`),
   updateStatus: (id, data)  => api.patch(`/issues/${id}/status`, data),
+  resolveWithProof: (id, formData) => api.post(`/issues/${id}/resolve`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 }),
   reassign:     (id, data)  => api.patch(`/issues/${id}/reassign`, data),
   delete:       (id)        => api.delete(`/issues/${id}`),
 };

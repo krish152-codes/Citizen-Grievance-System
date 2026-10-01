@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
 import { issuesAPI, aiAPI, SERVER_URL } from '../services/api';
+import ResolveWithProofModal from '../components/issue/ResolveWithProofModal';
+import ResolutionProofCard from '../components/issue/ResolutionProofCard';
 import { formatDateTime, getPriorityBadge, getStatusBadge, getCategoryConfig, DEPARTMENTS, getInitials } from '../utils/helpers';
 
 // ── Status Update Modal ──────────────────────────────
-function StatusModal({ issue, onClose, onSave }) {
+function StatusModal({ issue, onClose, onSave, onNeedProof }) {
   const STATUSES = [
     { id: 'in_progress', label: 'In Progress', icon: '↻' },
     { id: 'resolved',    label: 'Resolved',    icon: '✓' },
@@ -20,6 +22,10 @@ function StatusModal({ issue, onClose, onSave }) {
   const [error, setError]   = useState('');
 
   const handleSave = async () => {
+    // Resolving/closing needs photo proof of the completed work
+    if ((status === 'resolved' || status === 'closed') && status !== issue.status && !issue.resolution?.proofImageUrls?.length) {
+      onNeedProof(status); onClose(); return;
+    }
     setSaving(true); setError('');
     try {
       await issuesAPI.updateStatus(issue._id, { status, notes, notifyCitizen: notify });
@@ -269,7 +275,8 @@ export default function IssueDetailPage() {
   const navigate = useNavigate();
   const [issue, setIssue]   = useState(null);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal]   = useState(null); // 'status' | 'reassign' | 'letter' | null
+  const [modal, setModal]   = useState(null); // 'status' | 'reassign' | 'letter' | 'proof' | null
+  const [proofStatus, setProofStatus] = useState('resolved');
 
   const fetchIssue = useCallback(async () => {
     try {
@@ -401,6 +408,9 @@ export default function IssueDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Completion proof (before / after + verification) */}
+            <ResolutionProofCard issue={issue} />
 
             {/* Timeline */}
             {issue.timeline?.length > 0 && (
@@ -553,13 +563,10 @@ export default function IssueDetailPage() {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Management Actions</p>
               <div className="space-y-2">
                 <button
-                  onClick={() =>
-                    issuesAPI.updateStatus(issue._id, { status: 'resolved', notes: 'Marked resolved by admin' })
-                      .then(fetchIssue)
-                  }
+                  onClick={() => { setProofStatus('resolved'); setModal('proof'); }}
                   className="w-full py-2.5 bg-brand-600 hover:bg-brand-500 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
                 >
-                  ✓ Mark as Resolved
+                  📷 Mark as Resolved (photo proof)
                 </button>
                 <button
                   onClick={() => setModal('reassign')}
@@ -592,7 +599,8 @@ export default function IssueDetailPage() {
         </div>
       </div>
 
-      {modal === 'status'   && <StatusModal   issue={issue} onClose={() => setModal(null)} onSave={fetchIssue} />}
+      {modal === 'status'   && <StatusModal   issue={issue} onClose={() => setModal(null)} onSave={fetchIssue} onNeedProof={(st) => { setProofStatus(st); setModal('proof'); }} />}
+      {modal === 'proof'    && <ResolveWithProofModal issue={issue} status={proofStatus} onClose={() => setModal(null)} onDone={fetchIssue} />}
       {modal === 'reassign' && <ReassignModal issue={issue} onClose={() => setModal(null)} onSave={fetchIssue} />}
       {modal === 'letter'   && <LetterModal   issueId={issue._id} onClose={() => setModal(null)} />}
     </AdminLayout>

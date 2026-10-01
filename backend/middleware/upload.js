@@ -6,7 +6,8 @@ const fs     = require('fs');
 const uploadsDir   = path.join(__dirname, '../uploads');
 const voiceDir     = path.join(__dirname, '../uploads/voice');
 const drainEchoDir = path.join(__dirname, '../uploads/drain-echo'); // ← NEW: Drain Echo audio
-[uploadsDir, voiceDir, drainEchoDir].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
+const proofDir     = path.join(__dirname, '../uploads/proof');      // ← NEW: resolution proof photos
+[uploadsDir, voiceDir, drainEchoDir, proofDir].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 
 // ── Disk storage — images ──────────────────────────────
 const imageStorage = multer.diskStorage({
@@ -101,7 +102,23 @@ const drainEchoUpload = multer({
   fileFilter: voiceFilter, // same allowed audio types as voice notes
 });
 
+// ── Resolution proof photos (NEW) ──────────────────────
+// Up to 3 photos of the completed work, stored in uploads/proof/
+const proofStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, proofDir),
+  filename:    (req, file, cb) => {
+    const suffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `proof-${suffix}${path.extname(file.originalname).toLowerCase() || '.jpg'}`);
+  },
+});
+const proofUpload = multer({
+  storage: proofStorage,
+  limits:  { fileSize: MAX_FILE },
+  fileFilter: imageFilter,
+}).array('proof', 3);
+
 module.exports = upload;
+module.exports.proofUpload = proofUpload; // ← NEW
 module.exports.voiceUpload     = voiceUpload;
 module.exports.combinedUpload  = combinedUpload;
 module.exports.drainEchoUpload = drainEchoUpload; // ← NEW

@@ -5,6 +5,7 @@ const {
   getIssues,
   getIssueById,
   updateIssueStatus,
+  resolveIssueWithProof,
   reassignIssue,
   trackComplaint,
   deleteIssue,
@@ -20,6 +21,7 @@ router.get('/',                   protect,              getIssues);
 router.get('/track/:ticketId',                          trackComplaint);
 router.get('/:id',                protect,              getIssueById);
 router.patch('/:id/status',       protect, adminOnly,   updateIssueStatus);
+router.post('/:id/resolve',       protect, adminOnly,   upload.proofUpload, resolveIssueWithProof);
 router.patch('/:id/reassign',     protect, adminOnly,   reassignIssue);
 router.delete('/:id',             protect, adminOnly,   deleteIssue);
 

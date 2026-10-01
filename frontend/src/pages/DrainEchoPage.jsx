@@ -51,7 +51,7 @@ export default function DrainEchoPage() {
     [drains, search]
   );
 
-  const handleRecordingComplete = async ({ blob, durationSec, tapCount, clientReportedNoisy }) => {
+  const handleRecordingComplete = async ({ blob, durationSec, tapCount, manualTapCount, clientReportedNoisy }) => {
     setRecordedBlob(blob);
     setPhase('analyzing');
     setErrorMsg('');
@@ -61,6 +61,7 @@ export default function DrainEchoPage() {
     formData.append('drainId', selectedDrain._id);
     formData.append('durationSec', durationSec);
     formData.append('tapCount', tapCount);
+    formData.append('manualTapCount', manualTapCount || 0);
     formData.append('clientReportedNoisy', clientReportedNoisy);
 
     // Best-effort location — never blocks the flow.

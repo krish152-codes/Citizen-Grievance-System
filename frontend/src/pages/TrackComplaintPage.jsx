@@ -106,6 +106,11 @@ export default function TrackComplaintPage() {
                     </span>
                   </div>
                   <h2 className="font-display text-2xl font-bold text-slate-900">{issue.title}</h2>
+                  {issue.resolution?.verification?.verdict === 'RESOLVED' && (
+                    <p className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
+                      ✅ Work verified with photo proof
+                    </p>
+                  )}
                   {issue.location?.address && (
                     <p className="text-slate-500 text-sm mt-1 flex items-center gap-1">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

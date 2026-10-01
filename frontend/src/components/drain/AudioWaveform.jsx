@@ -16,6 +16,7 @@ export default function AudioWaveform({ mode = 'live', analyser, audioBlob, heig
   const [isPlaying, setIsPlaying] = useState(false);
   const [view, setView] = useState('waveform'); // 'waveform' | 'spectrum'
   const [staticPeaks, setStaticPeaks] = useState(null);
+  const gainRef = useRef(1);
 
   // Stable object URL for the audio element — created once per blob, revoked on change/unmount.
   const audioUrlRef = useRef(null);
@@ -88,14 +89,25 @@ export default function AudioWaveform({ mode = 'live', analyser, audioBlob, heig
         }
       } else {
         activeAnalyser.getByteTimeDomainData(timeData);
+        // Visual auto-gain: quiet sounds (like drain taps) would otherwise look like a flat line
+        let peak = 0;
+        for (let i = 0; i < bufferLength; i++) peak = Math.max(peak, Math.abs(timeData[i] - 128) / 128);
+        const targetGain = Math.min(12, Math.max(1, 0.6 / Math.max(peak, 0.02)));
+        gainRef.current += (targetGain - gainRef.current) * (targetGain < gainRef.current ? 0.3 : 0.05);
+        const gain = gainRef.current;
+
+        ctx2d.strokeStyle = 'rgba(148,163,184,0.25)';
+        ctx2d.lineWidth = 1;
+        ctx2d.beginPath(); ctx2d.moveTo(0, h / 2); ctx2d.lineTo(w, h / 2); ctx2d.stroke();
+
         ctx2d.lineWidth = 2;
-        ctx2d.strokeStyle = '#2563eb';
+        ctx2d.strokeStyle = '#60a5fa';
         ctx2d.beginPath();
         const sliceWidth = w / bufferLength;
         let x = 0;
         for (let i = 0; i < bufferLength; i++) {
-          const v = timeData[i] / 128.0;
-          const y = (v * h) / 2;
+          const v = ((timeData[i] - 128) / 128) * gain;
+          const y = h / 2 + Math.max(-1, Math.min(1, v)) * (h / 2 - 2);
           if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
           x += sliceWidth;
         }

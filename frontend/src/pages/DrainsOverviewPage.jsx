@@ -4,6 +4,7 @@ import AdminLayout from '../components/layout/AdminLayout';
 import StatusBadge from '../components/drain/StatusBadge';
 import AddDrainModal from '../components/drain/AddDrainModal';
 import { useAuth } from '../context/AuthContext';
+import usePolling from '../hooks/usePolling';
 import { drainsAPI, alertsAPI, drainIncidentsAPI } from '../services/api';
 import { timeAgo } from '../utils/helpers';
 
@@ -44,6 +45,13 @@ export default function DrainsOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+
+  // Quiet refresh so live readings appear without reloading the page
+  usePolling(() => {
+    drainsAPI.getAll()
+      .then((res) => { setDrains(res.data.drains); setSummary(res.data.summary); })
+      .catch(() => {});
+  }, 5000);
 
   useEffect(() => {
     setLoading(true);

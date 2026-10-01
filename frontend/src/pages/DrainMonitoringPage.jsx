@@ -4,11 +4,14 @@ import PublicNav from '../components/layout/PublicNav';
 import StatusBadge from '../components/drain/StatusBadge';
 import { drainsAPI } from '../services/api';
 import { timeAgo } from '../utils/helpers';
+import usePolling from '../hooks/usePolling';
 
 export default function DrainMonitoringPage() {
   const navigate = useNavigate();
   const [drains, setDrains] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  usePolling(() => { drainsAPI.getAll().then(({ data }) => setDrains(data.drains)).catch(() => {}); }, 8000);
 
   useEffect(() => {
     drainsAPI.getAll().then(({ data }) => setDrains(data.drains)).finally(() => setLoading(false));

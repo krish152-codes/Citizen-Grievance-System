@@ -6,6 +6,8 @@ import { WaterLevelCard, AtmosphereCard, DeviceHealthCard } from '../components/
 import TrendChart from '../components/drain/TrendChart';
 import ArduinoConnect from '../components/drain/ArduinoConnect';
 import LiveReadingsChart from '../components/drain/LiveReadingsChart';
+import LiveStatusBar from '../components/drain/LiveStatusBar';
+import usePolling from '../hooks/usePolling';
 import { drainsAPI, drainIncidentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { timeAgo } from '../utils/helpers';
@@ -109,8 +111,19 @@ export default function DrainDetailPage() {
 
   // Quiet refresh (no skeleton flash) used after each live Arduino reading
   const refreshDrain = useCallback(() => {
-    drainsAPI.getById(id).then(({ data }) => setDrain(data.drain)).catch(() => {});
+    drainsAPI.getById(id)
+      .then(({ data }) => setDrain((prev) => (
+        // keep the same object when nothing changed, so the page doesn't re-render needlessly
+        prev && prev.latest?.timestamp === data.drain.latest?.timestamp
+          && prev.latest?.deviceStatus === data.drain.latest?.deviceStatus
+          && prev.updatedAt === data.drain.updatedAt
+          ? prev : data.drain
+      )))
+      .catch(() => {});
   }, [id]);
+
+  // Real-time: pull the newest reading every 3 s, whoever sent it (browser or bridge)
+  usePolling(refreshDrain, 3000);
 
   useEffect(() => { loadDrain(); }, [loadDrain]);
 
@@ -181,6 +194,8 @@ export default function DrainDetailPage() {
             ⚠️ Device offline. Last update {timeAgo(drain.latest.timestamp)} — readings below may be stale.
           </div>
         )}
+
+        <LiveStatusBar latest={drain.latest} />
 
         {isMunicipal && <ArduinoConnect drain={drain} onPosted={refreshDrain} />}
 

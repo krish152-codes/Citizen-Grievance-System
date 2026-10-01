@@ -39,8 +39,12 @@ export function toReading(d) {
   };
 }
 
-export async function openSerial({ baudRate = 9600, onLine, onError, onClose }) {
-  const port = await navigator.serial.requestPort();
+export async function getGrantedPorts() {
+  try { return await navigator.serial.getPorts(); } catch { return []; }
+}
+
+export async function openSerial({ baudRate = 9600, port: existingPort, onLine, onError, onClose }) {
+  const port = existingPort || await navigator.serial.requestPort();
   await port.open({ baudRate });
 
   const decoder = new TextDecoderStream();
