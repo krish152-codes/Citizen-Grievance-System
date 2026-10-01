@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { analyticsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import CommunityShowcase from '../components/community/CommunityShowcase';
 
 const STATUS_CONFIG = {
   pending:     { label: 'Pending',     color: 'bg-yellow-100 text-yellow-700',  dot: 'bg-yellow-500' },
@@ -366,6 +367,9 @@ export default function CitizenDashboardPage() {
             </button>
           </div>
         </section>
+
+        {/* ── Community Heroes: citizens showcase their own fixes ── */}
+        <CommunityShowcase />
 
       </div>
     </div>

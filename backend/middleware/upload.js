@@ -7,7 +7,8 @@ const uploadsDir   = path.join(__dirname, '../uploads');
 const voiceDir     = path.join(__dirname, '../uploads/voice');
 const drainEchoDir = path.join(__dirname, '../uploads/drain-echo'); // ← NEW: Drain Echo audio
 const proofDir     = path.join(__dirname, '../uploads/proof');      // ← NEW: resolution proof photos
-[uploadsDir, voiceDir, drainEchoDir, proofDir].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
+const communityDir = path.join(__dirname, '../uploads/community'); // ← NEW: community work posts
+[uploadsDir, voiceDir, drainEchoDir, proofDir, communityDir].forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 
 // ── Disk storage — images ──────────────────────────────
 const imageStorage = multer.diskStorage({
@@ -117,7 +118,23 @@ const proofUpload = multer({
   fileFilter: imageFilter,
 }).array('proof', 3);
 
+// ── Community "I fixed this" posts (NEW) ───────────────
+// Exactly 2 photos (before / after) per post, stored in uploads/community/
+const communityStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, communityDir),
+  filename:    (req, file, cb) => {
+    const suffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `community-${suffix}${path.extname(file.originalname).toLowerCase() || '.jpg'}`);
+  },
+});
+const communityUpload = multer({
+  storage: communityStorage,
+  limits:  { fileSize: MAX_FILE, files: 2 },
+  fileFilter: imageFilter,
+}).array('images', 2);
+
 module.exports = upload;
+module.exports.communityUpload = communityUpload;
 module.exports.proofUpload = proofUpload; // ← NEW
 module.exports.voiceUpload     = voiceUpload;
 module.exports.combinedUpload  = combinedUpload;

@@ -66,6 +66,7 @@ app.use('/api/analytics',   analyticsRoutes);
 app.use('/api/users',       userRoutes);
 app.use('/api/departments', departmentRoutes); // ← NEW
 app.use('/api/chatbot',     require('./routes/chatbot'));
+app.use('/api/community',   require('./routes/community')); // ← NEW: citizen work showcase
 
 // ── Smart Drain Monitoring + Drain Echo ──
 app.use('/api/drains',    drainRoutes);
